@@ -63,9 +63,13 @@
     100%{transform:translateY(-72vh) translateX(14px);opacity:0}}
   #coverCv{position:absolute;right:0;bottom:0;height:min(96vh,85vw);z-index:0;
     background:transparent;filter:drop-shadow(0 0 30px rgba(226,59,59,.35));opacity:.95;}
+  /* 直式：立繪置中沉底當背景，半透明不搶文字 */
+  @media (orientation:portrait){
+    #coverCv{right:50%;transform:translateX(50%);height:min(62vh,135vw);opacity:.5;}
+  }
   #heroCv{height:110px;image-rendering:pixelated;background:transparent;margin-bottom:4px;}
   #ovEyebrow{font-size:12px;letter-spacing:6px;color:var(--ember);position:relative;z-index:1;}
-  #overlay h1{font-size:52px;letter-spacing:14px;color:var(--bone);position:relative;z-index:1;
+  #overlay h1{font-size:min(52px,12vw);letter-spacing:min(14px,3.2vw);color:var(--bone);position:relative;z-index:1;
     text-shadow:0 0 6px rgba(232,227,216,.3),0 4px 0 var(--crimson),0 0 34px rgba(226,59,59,.55);}
   #overlay .sub{font-size:13px;line-height:1.9;opacity:.85;position:relative;z-index:1;}
   #btnRow{display:flex;gap:14px;margin-top:10px;position:relative;z-index:1;}
@@ -76,7 +80,8 @@
     border:2px solid rgba(232,227,216,.4)!important;}
   #helpPanel{position:fixed;inset:0;z-index:12;background:rgba(11,10,16,.92);
     display:flex;align-items:center;justify-content:center;padding:20px;}
-  #helpBox{max-width:460px;border:2px solid rgba(232,227,216,.3);padding:24px 26px;
+  #helpBox{max-width:460px;max-height:88vh;overflow-y:auto;
+    border:2px solid rgba(232,227,216,.3);padding:24px 26px;
     background:#141019;color:var(--bone);text-align:center;}
   #helpBox h2{font-size:17px;letter-spacing:6px;color:var(--gold);margin-bottom:14px;}
   .helpBody{font-size:13px;line-height:2;opacity:.9;text-align:left;}
@@ -164,7 +169,7 @@ const TOP=96; // 牆面高度＝遊戲區上緣
 function resize(){
   const vw=innerWidth,vh=innerHeight;
   // 依裝置長寬比動態決定世界大小：短邊固定 540，長邊跟著螢幕走（填滿、無黑邊）
-  const ar=clamp(vw/vh,0.5,2.4);
+  const ar=clamp(vw/vh,0.42,2.4); // 涵蓋 19.5:9 直式手機，避免非等比拉伸
   if(ar>=1){H=540;W=Math.round(540*ar);}
   else{W=540;H=Math.round(540/ar);} // 直立握持也可玩
   cv.width=W;cv.height=H;
