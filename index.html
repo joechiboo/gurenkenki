@@ -153,6 +153,7 @@
 // ============ 基礎 ============
 const cv=document.getElementById("cv"),cx=cv.getContext("2d");
 let W=960,H=540;
+const TOP=96; // 牆面高度＝遊戲區上緣
 function resize(){
   const vw=innerWidth,vh=innerHeight;
   // 依裝置長寬比動態決定世界大小：短邊固定 540，長邊跟著螢幕走（填滿、無黑邊）
@@ -162,13 +163,13 @@ function resize(){
   cv.width=W;cv.height=H;
   cv.style.width=vw+"px";cv.style.height=vh+"px";
   // 轉向/縮放後把場上物件拉回界內
-  player.x=clamp(player.x,20,W-20);player.y=clamp(player.y,64,H-24);
-  for(const e of enemies){e.x=clamp(e.x,20,W-20);e.y=clamp(e.y,64,H-24);}
-  if(stairs){stairs.x=clamp(stairs.x,40,W-40);stairs.y=clamp(stairs.y,90,H-60);}
+  player.x=clamp(player.x,20,W-20);player.y=clamp(player.y,TOP,H-24);
+  for(const e of enemies){e.x=clamp(e.x,20,W-20);e.y=clamp(e.y,TOP,H-24);}
+  if(stairs){stairs.x=clamp(stairs.x,40,W-40);stairs.y=clamp(stairs.y,TOP+20,H-60);}
 }
 const rnd=(a,b)=>a+Math.random()*(b-a);
 const clamp=(v,a,b)=>v<a?a:v>b?b:v;
-const depthS=y=>0.85+0.25*clamp((y-58)/(H-58),0,1); // 2.5D 深度比例：越靠畫面下方（越近）畫越大
+const depthS=y=>0.72+0.5*clamp((y-TOP)/(H-TOP),0,1); // 2.5D 深度比例：越靠畫面下方（越近）畫越大
 const dist2=(a,b)=>{const dx=a.x-b.x,dy=a.y-b.y;return dx*dx+dy*dy;};
 function segDist(px,py,x1,y1,x2,y2){ // 點到線段的距離
   const dx=x2-x1,dy=y2-y1,L2=dx*dx+dy*dy||1;
@@ -242,10 +243,10 @@ const ULT_MUL=[0,2.2,2.9,2.4];   // 奧義每刀倍率（×重斬）：無音之
 
 // ============ 樓層色調 ============
 const PALETTES=[
-  {bg:"#141019",wall:"#241e30",line:"rgba(255,255,255,0.035)"},   // 1-4 石磚
-  {bg:"#101820",wall:"#1c2c38",line:"rgba(140,200,255,0.05)"},    // 5-9 寒窟
-  {bg:"#1a1210",wall:"#33201a",line:"rgba(255,150,80,0.05)"},     // 10-14 熔窟
-  {bg:"#12101c",wall:"#26204a",line:"rgba(180,140,255,0.05)"}     // 15+ 魔域
+  {bg:"#141019",wall:"#241e30",line:"rgba(255,255,255,0.08)"},    // 1-4 石磚
+  {bg:"#101820",wall:"#1c2c38",line:"rgba(140,200,255,0.1)"},     // 5-9 寒窟
+  {bg:"#1a1210",wall:"#33201a",line:"rgba(255,150,80,0.1)"},      // 10-14 熔窟
+  {bg:"#12101c",wall:"#26204a",line:"rgba(180,140,255,0.1)"}      // 15+ 魔域
 ];
 const pal=()=>PALETTES[Math.min(Math.floor((G.floor-1)/5),PALETTES.length-1)];
 
@@ -280,7 +281,7 @@ function spawnFloor(){
 function makeEnemy(type,f){
   const t=E_TYPES[type];
   let x,y;
-  do{x=rnd(60,W-60);y=rnd(90,H-70);}while(Math.hypot(x-player.x,y-player.y)<180);
+  do{x=rnd(60,W-60);y=rnd(TOP+14,H-70);}while(Math.hypot(x-player.x,y-player.y)<180);
   return {type,x,y,r:t.r,
     hp:t.hp*(1+(f-1)*0.22),maxhp:t.hp*(1+(f-1)*0.22),
     speed:t.speed*(1+(f-1)*0.045),dmg:t.dmg*(1+(f-1)*0.06),
@@ -334,7 +335,7 @@ function updatePlayer(){
     p.vx=ix*spd;p.vy=iy*spd;
   }
   p.x=clamp(p.x+p.vx,20,W-20);
-  p.y=clamp(p.y+p.vy,64,H-24);
+  p.y=clamp(p.y+p.vy,TOP,H-24);
   p.trail=p.trail.filter(t=>--t.life>0);
 
   if(p.atkCd>0)p.atkCd--;
@@ -454,7 +455,7 @@ function doUlt(){
     // 無音之太刀：朝最近敵人一直線居合，斬擊直線上所有敵人
     const aim=alive[0];
     const a=aim?Math.atan2(aim.y-p.y,aim.x-p.x):(p.face>0?0:Math.PI);
-    const end={x:clamp(p.x+Math.cos(a)*300,26,W-26),y:clamp(p.y+Math.sin(a)*300,70,H-30)};
+    const end={x:clamp(p.x+Math.cos(a)*300,26,W-26),y:clamp(p.y+Math.sin(a)*300,TOP+6,H-30)};
     targets=enemies.filter(e=>!e.dead&&segDist(e.x,e.y,p.x,p.y,end.x,end.y)<e.r+26);
     path.push({x1:p.x,y1:p.y,x2:end.x,y2:end.y,targets});
   }else{
@@ -468,7 +469,7 @@ function doUlt(){
       let a=Math.atan2(t.y-cur.y,t.x-cur.x);
       const passes=tier===3?6:4;
       for(let i=0;i<passes;i++){
-        const end={x:clamp(t.x+Math.cos(a)*52,26,W-26),y:clamp(t.y+Math.sin(a)*52,70,H-30)};
+        const end={x:clamp(t.x+Math.cos(a)*52,26,W-26),y:clamp(t.y+Math.sin(a)*52,TOP+6,H-30)};
         path.push({x1:cur.x,y1:cur.y,x2:end.x,y2:end.y,targets:[t]});
         cur=end;a+=2.4; // 換個角度再穿一刀
       }
@@ -476,7 +477,7 @@ function doUlt(){
       // 多目標：依序穿過每個目標（穿過身後一小段）
       for(const t of targets){
         const a=Math.atan2(t.y-cur.y,t.x-cur.x);
-        const end={x:clamp(t.x+Math.cos(a)*46,26,W-26),y:clamp(t.y+Math.sin(a)*46,70,H-30)};
+        const end={x:clamp(t.x+Math.cos(a)*46,26,W-26),y:clamp(t.y+Math.sin(a)*46,TOP+6,H-30)};
         path.push({x1:cur.x,y1:cur.y,x2:end.x,y2:end.y,targets:[t]});
         cur=end;
       }
@@ -484,7 +485,7 @@ function doUlt(){
         for(let i=targets.length-1;i>=0;i--){
           const t=targets[i];
           const a=Math.atan2(t.y-cur.y,t.x-cur.x);
-          const end={x:clamp(t.x+Math.cos(a)*46,26,W-26),y:clamp(t.y+Math.sin(a)*46,70,H-30)};
+          const end={x:clamp(t.x+Math.cos(a)*46,26,W-26),y:clamp(t.y+Math.sin(a)*46,TOP+6,H-30)};
           path.push({x1:cur.x,y1:cur.y,x2:end.x,y2:end.y,targets:[t]});
           cur=end;
         }
@@ -496,7 +497,7 @@ function doUlt(){
       const la=Math.atan2(last.y2-last.y1,last.x2-last.x1);
       path.push({x1:last.x2,y1:last.y2,
         x2:clamp(last.x2+Math.cos(la)*90,26,W-26),
-        y2:clamp(last.y2+Math.sin(la)*90,70,H-30)});
+        y2:clamp(last.y2+Math.sin(la)*90,TOP+6,H-30)});
     }
   }
   G.ultSeq={phase:"charge",t:tier===1?14:24,path,idx:0,segT:0,targets,dim:0,tier};
@@ -613,7 +614,7 @@ function updateEnemies(){
       if(e.type==="bat")sp*=1+Math.sin(e.wobble*2)*0.5;
       if(d>e.r+p.r-4){e.x+=dx/d*sp;e.y+=dy/d*sp;}
     }
-    e.x=clamp(e.x,20,W-20);e.y=clamp(e.y,64,H-24);
+    e.x=clamp(e.x,20,W-20);e.y=clamp(e.y,TOP,H-24);
     if(e.atkCd>0)e.atkCd--;
     if(d<e.r+p.r&&e.atkCd<=0&&p.inv<=0)hurtPlayer(e.dmg,e);
   }
@@ -628,7 +629,7 @@ function updateEnemies(){
   if(enemies.length===0&&!stairs){
     G.clearTimer++;
     if(G.clearTimer===30){
-      stairs={x:W/2,y:110,r:26,pulse:0};
+      stairs={x:W/2,y:TOP+34,r:26,pulse:0};
       burst(stairs.x,stairs.y,"#ffd166",24,6);
     }
   }
@@ -725,40 +726,46 @@ function nextFloor(){
 function drawFloorBg(){
   const P=pal();
   cx.fillStyle=P.bg;cx.fillRect(0,0,W,H);
-  // 地板格線：直線往遠處微收斂、橫線往下漸寬，做出縱深
+  const WB=TOP-8; // 牆底位置
+  // 地板：透視明暗條紋（越遠越密）+ 格線（直線收斂、橫線漸寬）
+  const rows=[];let gy=WB,sp=26;
+  while(gy<H+60){rows.push(gy);gy+=sp;sp*=1.22;}
+  cx.fillStyle="rgba(255,255,255,0.03)";
+  for(let i=1;i<rows.length-1;i+=2)cx.fillRect(0,rows[i],W,rows[i+1]-rows[i]);
   cx.strokeStyle=P.line;cx.lineWidth=1;
   const gs=48;
   for(let x=0;x<=W;x+=gs){
-    const xt=W/2+(x-W/2)*0.9;
-    cx.beginPath();cx.moveTo(xt,58);cx.lineTo(x,H);cx.stroke();
+    const xt=W/2+(x-W/2)*0.82;
+    cx.beginPath();cx.moveTo(xt,WB);cx.lineTo(x,H);cx.stroke();
   }
-  let gy=58,sp=30;
-  while(gy<=H){
-    cx.beginPath();cx.moveTo(0,gy);cx.lineTo(W,gy);cx.stroke();
-    gy+=sp;sp*=1.14;
+  for(const ry of rows){
+    cx.beginPath();cx.moveTo(0,ry);cx.lineTo(W,ry);cx.stroke();
   }
-  // 立體牆面：天花暗帶 + 磚牆立面 + 牆腳落在地板的陰影
-  cx.fillStyle="#070609";cx.fillRect(0,0,W,12);
-  cx.fillStyle=P.wall;cx.fillRect(0,12,W,46);
+  // 立體牆面：天花暗帶 + 四排磚立面 + 下緣漸暗 + 牆腳投影
+  cx.fillStyle="#070609";cx.fillRect(0,0,W,16);
+  cx.fillStyle=P.wall;cx.fillRect(0,16,W,WB-16);
   cx.strokeStyle="rgba(0,0,0,0.3)";
-  cx.beginPath();cx.moveTo(0,27);cx.lineTo(W,27);cx.moveTo(0,42);cx.lineTo(W,42);cx.stroke();
-  for(let r=0;r<3;r++){
-    const yy=12+r*15;
-    for(let x=(r%2)*24;x<=W;x+=48){cx.beginPath();cx.moveTo(x,yy);cx.lineTo(x,yy+15);cx.stroke();}
+  for(let r=1;r<4;r++){const yy=16+r*18;cx.beginPath();cx.moveTo(0,yy);cx.lineTo(W,yy);cx.stroke();}
+  for(let r=0;r<4;r++){
+    const yy=16+r*18;
+    for(let x=(r%2)*24;x<=W;x+=48){cx.beginPath();cx.moveTo(x,yy);cx.lineTo(x,Math.min(yy+18,WB));cx.stroke();}
   }
-  cx.fillStyle="rgba(255,255,255,0.05)";cx.fillRect(0,12,W,3);
-  const ws=cx.createLinearGradient(0,58,0,84);
-  ws.addColorStop(0,"rgba(0,0,0,0.45)");ws.addColorStop(1,"rgba(0,0,0,0)");
-  cx.fillStyle=ws;cx.fillRect(0,58,W,26);
-  // 火把改掛在牆面上
+  cx.fillStyle="rgba(255,255,255,0.06)";cx.fillRect(0,16,W,3);
+  const wg=cx.createLinearGradient(0,WB-30,0,WB);
+  wg.addColorStop(0,"rgba(0,0,0,0)");wg.addColorStop(1,"rgba(0,0,0,0.35)");
+  cx.fillStyle=wg;cx.fillRect(0,WB-30,W,30);
+  const ws=cx.createLinearGradient(0,WB,0,WB+34);
+  ws.addColorStop(0,"rgba(0,0,0,0.5)");ws.addColorStop(1,"rgba(0,0,0,0)");
+  cx.fillStyle=ws;cx.fillRect(0,WB,W,34);
+  // 火把掛在牆面上
   for(const tx of [80,W/2,W-80]){
-    const g=cx.createRadialGradient(tx,46,4,tx,46,150);
-    g.addColorStop(0,"rgba(255,140,66,0.16)");g.addColorStop(1,"rgba(0,0,0,0)");
-    cx.fillStyle=g;cx.fillRect(tx-150,0,300,240);
-    cx.fillStyle="#5a4a3a";cx.fillRect(tx-2,42,4,14);
+    const g=cx.createRadialGradient(tx,58,4,tx,58,170);
+    g.addColorStop(0,"rgba(255,140,66,0.2)");g.addColorStop(1,"rgba(0,0,0,0)");
+    cx.fillStyle=g;cx.fillRect(tx-170,0,340,300);
+    cx.fillStyle="#5a4a3a";cx.fillRect(tx-2,56,4,16);
     cx.fillStyle="#ff8c42";
     const fl=2+Math.sin(G.time*0.3+tx)*1.5;
-    cx.fillRect(tx-2,36-fl,4,6+fl);
+    cx.fillRect(tx-2,48-fl,4,8+fl);
   }
   // 四角暗角
   const v=cx.createRadialGradient(W/2,H/2,H*0.45,W/2,H/2,H*0.85);
