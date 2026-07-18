@@ -243,7 +243,7 @@ const player={
   dashQueue:false,dashDir:null,dashTimer:0,dashCd:0,inv:0,
   ultQueue:false,ultCd:0,hurtFlash:0,trail:[],walk:0
 };
-let enemies=[],particles=[],dmgNums=[],slashes=[],orbs=[],drops=[],bullets=[],stairs=null,boss=null;
+let enemies=[],particles=[],dmgNums=[],slashes=[],orbs=[],drops=[],bullets=[],hazards=[],stairs=null,boss=null;
 addEventListener("resize",resize);resize();
 let comboCount=0,comboFade=0;
 function queueAttack(){if(G.running)player.atkQueue=true;}
@@ -270,18 +270,34 @@ const E_TYPES={
   brute:{r:24,hp:120,speed:1.1,dmg:20,color:"#b0413e",exp:30},
   boss:{r:34,hp:420,speed:1.25,dmg:24,color:"#7a1f2b",exp:120},
   prism:{r:28,hp:520,speed:1.1,dmg:22,color:"#8b5fbf",exp:200},
-  kenki:{r:26,hp:640,speed:1.5,dmg:26,color:"#3b2547",exp:320}
+  kenki:{r:26,hp:640,speed:1.5,dmg:26,color:"#3b2547",exp:320},
+  fang:{r:22,hp:300,speed:2.2,dmg:18,color:"#c2453a",exp:110},
+  golem:{r:40,hp:900,speed:0.55,dmg:30,color:"#7a4a2b",exp:360},
+  queen:{r:26,hp:760,speed:1.2,dmg:22,color:"#5b2a6e",exp:420}
 };
+const BOSS_TYPES=["boss","prism","kenki","golem","queen"]; // fang(雙子)另計
 function spawnFloor(){
-  enemies=[];bullets=[];stairs=null;boss=null;G.clearTimer=0;
+  enemies=[];bullets=[];hazards=[];stairs=null;boss=null;G.clearTimer=0;
   const f=G.floor;
-  if(f%5===0){ // 頭目層輪替：5守衛 → 10稜鏡 → 15劍鬼 → 20稜鏡…
-    const kind=f%15===0?"kenki":f%10===0?"prism":"boss";
-    boss=makeEnemy(kind,f);
-    boss.state="chase";boss.stateT=120;
-    if(kind==="prism"){boss.state="orbit";boss.orbA=rnd(0,6.28);boss.spin=0;boss.dashN=0;}
-    if(kind==="kenki"){boss.state="stalk";boss.stateT=90;boss.slashN=0;}
-    enemies.push(boss);
+  if(f%5===0){ // 頭目層：每 5 層換一隻，30 層一輪後循環
+    const cycle=["boss","prism","kenki","fang","golem","queen"];
+    const kind=cycle[(f/5-1)%cycle.length];
+    if(kind==="fang"){ // 血月雙牙：成對獵殺
+      for(let i=0;i<2;i++){
+        const t=makeEnemy("fang",f);
+        t.twin=i;t.state="circle";t.stateT=90+i*70;t.orbA=i*Math.PI;
+        enemies.push(t);
+        if(i===0)boss=t;
+      }
+    }else{
+      boss=makeEnemy(kind,f);
+      boss.state="chase";boss.stateT=120;
+      if(kind==="prism"){boss.state="orbit";boss.orbA=rnd(0,6.28);boss.spin=0;boss.dashN=0;}
+      if(kind==="kenki"){boss.state="stalk";boss.stateT=90;boss.slashN=0;}
+      if(kind==="golem"){boss.state="advance";boss.stateT=60;boss.qT=280;}
+      if(kind==="queen"){boss.state="drift";boss.stateT=100;boss.hover=0;}
+      enemies.push(boss);
+    }
     for(let i=0;i<2;i++)enemies.push(makeEnemy("slime",f));
     return;
   }
@@ -604,7 +620,12 @@ function killEnemy(e){
   }
   // 精英/頭目掉裝
   if(e.type==="brute"&&Math.random()<0.6)dropItem(e.x,e.y);
-  if(e.type==="boss"||e.type==="prism"||e.type==="kenki"){dropItem(e.x-16,e.y);dropItem(e.x+16,e.y);boss=null;shake(14);G.flash=10;}
+  if(e.type==="fang"){ // 雙子：先倒的掉一件，兩隻全滅才結束
+    dropItem(e.x,e.y);
+    const other=enemies.find(o=>o!==e&&o.type==="fang"&&!o.dead);
+    if(other)boss=other;
+    else{dropItem(e.x+14,e.y);boss=null;shake(14);G.flash=10;}
+  }else if(BOSS_TYPES.includes(e.type)){dropItem(e.x-16,e.y);dropItem(e.x+16,e.y);boss=null;shake(14);G.flash=10;}
   player.hp=Math.min(player.maxhp,player.hp+1.5);
 }
 function dropItem(x,y){
@@ -624,6 +645,9 @@ function updateEnemies(){
     if(e.type==="boss")updateBoss(e,dx,dy,d);
     else if(e.type==="prism")updatePrism(e,dx,dy,d);
     else if(e.type==="kenki")updateKenki(e,dx,dy,d);
+    else if(e.type==="fang")updateFang(e,dx,dy,d);
+    else if(e.type==="golem")updateGolem(e,dx,dy,d);
+    else if(e.type==="queen")updateQueen(e,dx,dy,d);
     else{
       let sp=e.speed;
       if(e.type==="bat")sp*=1+Math.sin(e.wobble*2)*0.5;
@@ -640,6 +664,13 @@ function updateEnemies(){
     if(dist2(b,p)<(b.r+p.r)**2&&p.inv<=0){hurtPlayer(b.dmg,b);b.life=0;}
   }
   bullets=bullets.filter(b=>b.life>0&&b.x>-20&&b.x<W+20&&b.y>-20&&b.y<H+20);
+  // 熔岩池（預警後生效，站在裡面持續受傷）
+  for(const h of hazards){
+    h.life--;
+    if(h.warn>0){h.warn--;continue;}
+    if(player.inv<=0&&dist2(player,h)<(h.r-2)**2)hurtPlayer(h.dmg,h);
+  }
+  hazards=hazards.filter(h=>h.life>0);
   // 清層
   if(enemies.length===0&&!stairs){
     G.clearTimer++;
@@ -714,6 +745,99 @@ function updatePrism(e,dx,dy,d){
       e.dashN--;
       if(e.dashN>0){e.state="triwind";e.stateT=24;}
       else{e.state="orbit";e.stateT=Math.round(rnd(240,320));e.orbA=Math.atan2(e.y-player.y,e.x-player.x);}
+    }
+  }
+}
+// 第20層魔王「血月雙牙」：反向繞行、輪流撲擊，一隻倒下另一隻狂暴
+function updateFang(e,dx,dy,d){
+  e.stateT--;
+  if(!e.enraged&&!enemies.some(o=>o!==e&&o.type==="fang"&&!o.dead)){
+    e.enraged=1;e.speed*=1.35;e.dmg*=1.2;e.flash=8;
+    burst(e.x,e.y,"#ff2e2e",16,6);shake(6);
+  }
+  if(e.state==="circle"){
+    e.orbA+=0.022*(e.twin?1:-1);
+    const tx=player.x+Math.cos(e.orbA)*150,ty=player.y+Math.sin(e.orbA)*150;
+    const mx=tx-e.x,my=ty-e.y,md=Math.hypot(mx,my)||1;
+    e.x+=mx/md*Math.min(e.speed*1.6,md);
+    e.y+=my/md*Math.min(e.speed*1.6,md);
+    if(e.stateT<=0){e.state="pouncewind";e.stateT=22;}
+  }else if(e.state==="pouncewind"){ // 壓低蓄力（可躲）
+    if(e.stateT<=0){
+      const a=Math.atan2(player.y-e.y,player.x-e.x);
+      e.cx=Math.cos(a);e.cy=Math.sin(a);
+      e.state="pounce";e.stateT=14;shake(2);
+    }
+  }else if(e.state==="pounce"){ // 猛撲
+    e.x+=e.cx*9.5;e.y+=e.cy*9.5;
+    if(e.stateT<=0){e.state="circle";e.stateT=Math.round(rnd(110,170))+(e.twin?40:0);}
+  }
+}
+// 第25層魔王「熔核巨像」：近身轟地環形衝擊波、地震召出熔岩池
+function updateGolem(e,dx,dy,d){
+  e.stateT--;e.qT=(e.qT||280)-1;
+  if(e.state==="advance"){
+    if(d>e.r+player.r-4){e.x+=dx/d*e.speed;e.y+=dy/d*e.speed;}
+    if(d<150&&e.stateT<=0){e.state="slamwind";e.stateT=34;}
+    else if(e.qT<=0){e.state="quakewind";e.stateT=30;e.qT=Math.round(rnd(260,340));}
+  }else if(e.state==="slamwind"){ // 舉拳蓄力
+    if(e.stateT<=0){
+      e.state="recover";e.stateT=44;
+      shake(11);buzz(50);burst(e.x,e.y,"#ff8c42",24,7);
+      const n=22;
+      for(let i=0;i<n;i++){const a=i/n*Math.PI*2;
+        bullets.push({x:e.x,y:e.y,vx:Math.cos(a)*2.6,vy:Math.sin(a)*2.6,r:7,dmg:e.dmg*0.5,life:130});}
+    }
+  }else if(e.state==="quakewind"){ // 地震前兆（身體顫動）
+    if(e.stateT<=0){
+      e.state="recover";e.stateT=54;shake(13);buzz(60);
+      for(let i=0;i<3;i++){
+        hazards.push({x:clamp(player.x+rnd(-130,130),40,W-40),
+          y:clamp(player.y+rnd(-95,95),TOP+16,H-30),
+          r:34,life:330,max:330,warn:42,dmg:e.dmg*0.4});
+      }
+    }
+  }else if(e.state==="recover"){
+    if(e.stateT<=0){e.state="advance";e.stateT=Math.round(rnd(60,110));}
+  }
+}
+// 第30層魔王「虛空女王」：召喚小怪、螺旋彈幕；半血後瞬移、雙螺旋
+function updateQueen(e,dx,dy,d){
+  e.stateT--;e.hover=(e.hover||0)+0.06;
+  const enr=e.hp<e.maxhp*0.5;
+  if(e.state==="drift"){ // 保持中距離漂浮
+    const mv=d>210?1:-1;
+    e.x+=dx/d*e.speed*mv;e.y+=dy/d*e.speed*mv;
+    e.x+=Math.cos(e.hover)*0.6;e.y+=Math.sin(e.hover*0.8)*0.5;
+    if(e.stateT<=0){
+      const minions=enemies.filter(o=>!o.dead&&o.type!=="queen").length;
+      if(minions<4&&Math.random()<0.5){e.state="summon";e.stateT=36;}
+      else{e.state="spiral";e.stateT=enr?110:80;e.spA=rnd(0,6.28);}
+    }
+  }else if(e.state==="summon"){ // 召喚眷屬
+    if(e.stateT<=0){
+      for(let i=0;i<(enr?3:2);i++){
+        const m=makeEnemy(Math.random()<0.5?"bat":"slime",G.floor);
+        m.x=clamp(e.x+rnd(-60,60),30,W-30);m.y=clamp(e.y+rnd(-50,50),TOP+10,H-30);
+        enemies.push(m);burst(m.x,m.y,"#8b5fbf",8,4);
+      }
+      e.state="drift";e.stateT=Math.round(rnd(120,180));
+    }
+  }else if(e.state==="spiral"){ // 旋轉螺旋彈（半血後雙螺旋）
+    e.spA+=enr?0.33:0.27;
+    if(e.stateT%4===0)
+      bullets.push({x:e.x,y:e.y,vx:Math.cos(e.spA)*3.0,vy:Math.sin(e.spA)*3.0,r:6,dmg:e.dmg*0.5,life:200});
+    if(e.stateT%4===2&&enr)
+      bullets.push({x:e.x,y:e.y,vx:Math.cos(e.spA+Math.PI)*3.0,vy:Math.sin(e.spA+Math.PI)*3.0,r:6,dmg:e.dmg*0.5,life:200});
+    if(e.stateT<=0){
+      if(enr){ // 低血量瞬移拉開
+        burst(e.x,e.y,"#5b2a6e",10,5);
+        const a=rnd(0,6.28);
+        e.x=clamp(player.x+Math.cos(a)*180,40,W-40);
+        e.y=clamp(player.y+Math.sin(a)*180,TOP+14,H-40);
+        burst(e.x,e.y,"#8b5fbf",10,5);
+      }
+      e.state="drift";e.stateT=Math.round(rnd(100,150));
     }
   }
 }
@@ -840,6 +964,25 @@ function drawStairs(){
   cx.fillStyle="#ffd166";cx.beginPath();
   cx.moveTo(s.x,s.y+9);cx.lineTo(s.x-8,s.y-4);cx.lineTo(s.x+8,s.y-4);cx.closePath();cx.fill();
 }
+function drawHazards(){
+  for(const h of hazards){
+    if(h.warn>0){ // 預警圈
+      cx.strokeStyle=`rgba(255,140,66,${0.35+0.35*Math.abs(Math.sin(G.time*0.4))})`;
+      cx.lineWidth=2;
+      cx.beginPath();cx.arc(h.x,h.y,h.r,0,7);cx.stroke();
+    }else{
+      const a=clamp(h.life/60,0,1); // 消失前淡出
+      const g=cx.createRadialGradient(h.x,h.y,3,h.x,h.y,h.r);
+      g.addColorStop(0,`rgba(255,180,80,${0.75*a})`);
+      g.addColorStop(0.7,`rgba(255,100,40,${0.5*a})`);
+      g.addColorStop(1,"rgba(120,30,10,0)");
+      cx.fillStyle=g;cx.beginPath();cx.arc(h.x,h.y,h.r,0,7);cx.fill();
+      if(G.time%7===0&&Math.random()<0.5)
+        particles.push({x:h.x+rnd(-h.r*0.6,h.r*0.6),y:h.y+rnd(-h.r*0.5,h.r*0.5),
+          vx:0,vy:-0.5,life:18,max:18,color:"#ffb050",size:2});
+    }
+  }
+}
 function drawOrbs(){
   cx.fillStyle="#7fd0ff";
   cx.globalAlpha=0.9;
@@ -959,6 +1102,83 @@ function drawEnemy(e){
       cx.fillStyle=(e.state==="triwind"&&Math.floor(G.time/4)%2===0)?"#ff5544":"#d9c2ff";
       cx.beginPath();cx.arc(0,0,e.r*0.14,0,7);cx.fill();
       cx.restore();
+    }else if(e.type==="fang"){
+      // 血月雙牙：低伏紅獸，狂暴時帶血色氣場
+      if(e.enraged){
+        const g=cx.createRadialGradient(e.x,e.y,3,e.x,e.y,e.r+16);
+        g.addColorStop(0,"rgba(255,46,46,0.4)");g.addColorStop(1,"rgba(0,0,0,0)");
+        cx.fillStyle=g;cx.beginPath();cx.arc(e.x,e.y,e.r+16,0,7);cx.fill();
+      }
+      const dir=player.x>e.x?1:-1;
+      const wind=e.state==="pouncewind"&&Math.floor(G.time/4)%2===0;
+      cx.fillStyle=wind?"#ff5544":col;
+      cx.beginPath();cx.ellipse(e.x-dir*e.r*0.15,e.y+bob*0.3,e.r*1.05,e.r*0.72,0,0,7);cx.fill();
+      const hx=e.x+dir*e.r*0.85,hy=e.y-e.r*0.3+bob*0.3;
+      cx.beginPath();cx.arc(hx,hy,e.r*0.55,0,7);cx.fill();
+      cx.beginPath();cx.moveTo(hx-dir*e.r*0.1,hy-e.r*0.45);
+      cx.lineTo(hx-dir*e.r*0.35,hy-e.r*0.95);cx.lineTo(hx-dir*e.r*0.5,hy-e.r*0.4);cx.closePath();cx.fill();
+      cx.beginPath();cx.moveTo(e.x-dir*e.r*1.0,e.y);
+      cx.quadraticCurveTo(e.x-dir*e.r*1.6,e.y-e.r*0.8+Math.sin(e.wobble)*4,e.x-dir*e.r*1.3,e.y-e.r*0.2);
+      cx.lineTo(e.x-dir*e.r*0.9,e.y+e.r*0.2);cx.closePath();cx.fill();
+      cx.fillStyle="#ff2e2e";
+      cx.fillRect(hx-5,hy-3,4,3);cx.fillRect(hx+2,hy-3,4,3);
+      cx.fillStyle="#fff"; // 獠牙
+      cx.beginPath();cx.moveTo(hx-3,hy+e.r*0.35);cx.lineTo(hx-1,hy+e.r*0.65);cx.lineTo(hx+1,hy+e.r*0.35);cx.closePath();cx.fill();
+      cx.beginPath();cx.moveTo(hx+3,hy+e.r*0.35);cx.lineTo(hx+5,hy+e.r*0.62);cx.lineTo(hx+7,hy+e.r*0.35);cx.closePath();cx.fill();
+    }else if(e.type==="golem"){
+      // 熔核巨像：岩石軀體、熔岩裂縫、雙拳
+      const qsh=e.state==="quakewind"?rnd(-2,2):0;
+      const raise=e.state==="slamwind"?10:0;
+      cx.save();cx.translate(qsh,0);
+      cx.fillStyle=col;
+      cx.fillRect(e.x-e.r*0.78,e.y-e.r*0.85,e.r*1.56,e.r*1.6);
+      cx.fillStyle="#5c3a22";
+      cx.fillRect(e.x-e.r*0.78,e.y-e.r*0.1,e.r*1.56,e.r*0.28);
+      cx.strokeStyle=`rgba(255,140,66,${0.5+0.5*Math.sin(G.time*0.15)})`;
+      cx.lineWidth=3;
+      cx.beginPath();cx.moveTo(e.x-e.r*0.4,e.y-e.r*0.7);cx.lineTo(e.x-e.r*0.15,e.y-e.r*0.2);cx.lineTo(e.x-e.r*0.35,e.y+e.r*0.3);cx.stroke();
+      cx.beginPath();cx.moveTo(e.x+e.r*0.35,e.y-e.r*0.6);cx.lineTo(e.x+e.r*0.2,e.y);cx.stroke();
+      cx.fillStyle=col;cx.fillRect(e.x-e.r*0.3,e.y-e.r*1.15,e.r*0.6,e.r*0.35);
+      cx.fillStyle="#ff8c42";
+      cx.fillRect(e.x-e.r*0.18,e.y-e.r*1.05,e.r*0.12,e.r*0.12);
+      cx.fillRect(e.x+e.r*0.06,e.y-e.r*1.05,e.r*0.12,e.r*0.12);
+      cx.fillStyle="#5c3a22";
+      cx.beginPath();cx.arc(e.x-e.r*0.95,e.y+e.r*0.1-raise,e.r*0.34,0,7);cx.fill();
+      cx.beginPath();cx.arc(e.x+e.r*0.95,e.y+e.r*0.1-raise,e.r*0.34,0,7);cx.fill();
+      cx.restore();
+    }else if(e.type==="queen"){
+      // 虛空女王：飄浮長袍、金冠、施法光球
+      const fl=Math.sin(e.hover||0)*4;
+      const g=cx.createRadialGradient(e.x,e.y+fl,4,e.x,e.y+fl,e.r+24);
+      g.addColorStop(0,"rgba(192,122,232,0.35)");g.addColorStop(1,"rgba(0,0,0,0)");
+      cx.fillStyle=g;cx.beginPath();cx.arc(e.x,e.y+fl,e.r+24,0,7);cx.fill();
+      cx.fillStyle=col;
+      cx.beginPath();
+      cx.moveTo(e.x-e.r*0.35,e.y-e.r*0.7+fl);
+      cx.lineTo(e.x+e.r*0.35,e.y-e.r*0.7+fl);
+      cx.quadraticCurveTo(e.x+e.r*0.9,e.y+fl,e.x+e.r*0.75,e.y+e.r*0.95+fl);
+      cx.lineTo(e.x+e.r*0.35,e.y+e.r*0.6+fl);
+      cx.lineTo(e.x,e.y+e.r*0.95+fl);
+      cx.lineTo(e.x-e.r*0.35,e.y+e.r*0.6+fl);
+      cx.lineTo(e.x-e.r*0.75,e.y+e.r*0.95+fl);
+      cx.quadraticCurveTo(e.x-e.r*0.9,e.y+fl,e.x-e.r*0.35,e.y-e.r*0.7+fl);
+      cx.closePath();cx.fill();
+      cx.fillStyle="#2a1638";
+      cx.beginPath();cx.arc(e.x,e.y-e.r*0.85+fl,e.r*0.4,0,7);cx.fill();
+      cx.fillStyle="#ffd166"; // 王冠
+      cx.beginPath();
+      cx.moveTo(e.x-e.r*0.35,e.y-e.r*1.1+fl);
+      cx.lineTo(e.x-e.r*0.2,e.y-e.r*1.45+fl);cx.lineTo(e.x-e.r*0.05,e.y-e.r*1.15+fl);
+      cx.lineTo(e.x+e.r*0.05,e.y-e.r*1.5+fl);cx.lineTo(e.x+e.r*0.15,e.y-e.r*1.15+fl);
+      cx.lineTo(e.x+e.r*0.3,e.y-e.r*1.42+fl);cx.lineTo(e.x+e.r*0.35,e.y-e.r*1.08+fl);
+      cx.closePath();cx.fill();
+      cx.fillStyle=(e.state==="summon"&&Math.floor(G.time/4)%2===0)?"#fff":"#c07ae8";
+      cx.fillRect(e.x-e.r*0.2,e.y-e.r*0.9+fl,e.r*0.14,e.r*0.1);
+      cx.fillRect(e.x+e.r*0.06,e.y-e.r*0.9+fl,e.r*0.14,e.r*0.1);
+      if(e.state==="spiral"){
+        const ox=e.x+Math.cos(e.spA)*(e.r+10),oy=e.y+fl+Math.sin(e.spA)*(e.r+10);
+        cx.fillStyle="#c07ae8";cx.beginPath();cx.arc(ox,oy,5,0,7);cx.fill();
+      }
     }else if(e.type==="kenki"){
       // 深淵劍鬼：紅黑氣場＋破斗篷剪影＋魔刀
       const g=cx.createRadialGradient(e.x,e.y,4,e.x,e.y,e.r+22);
@@ -1003,7 +1223,7 @@ function drawEnemy(e){
         cx.beginPath();cx.moveTo(e.x+e.r*0.6,e.y-e.r);cx.lineTo(e.x+e.r*0.9,e.y-e.r-14);cx.lineTo(e.x+e.r*0.3,e.y-e.r);cx.closePath();cx.fill();
       }
     }
-    if(e.hp<e.maxhp&&e.type!=="boss"&&e.type!=="prism"&&e.type!=="kenki"){
+    if(e.hp<e.maxhp&&!BOSS_TYPES.includes(e.type)&&e.type!=="fang"){
       const w=e.r*2;
       cx.fillStyle="#000";cx.fillRect(e.x-e.r,e.y-e.r-10,w,4);
       cx.fillStyle="#e23b3b";cx.fillRect(e.x-e.r,e.y-e.r-10,w*clamp(e.hp/e.maxhp,0,1),4);
@@ -1023,10 +1243,18 @@ function drawBossBar(){
   if(boss&&!boss.dead){
     const bw=W*0.5,bx0=(W-bw)/2;
     cx.fillStyle="rgba(0,0,0,0.7)";cx.fillRect(bx0-3,14,bw+6,16);
-    const bcol=boss.type==="prism"?["#4a2a66","#8b5fbf","深淵稜鏡"]:
-      boss.type==="kenki"?["#3b1220","#ff4a4a","深淵劍鬼"]:["#7a1f2b","#e23b3b","地城守衛"];
+    const BOSS_BAR={prism:["#4a2a66","#8b5fbf","深淵稜鏡"],kenki:["#3b1220","#ff4a4a","深淵劍鬼"],
+      fang:["#4a1520","#e0564a","血月雙牙"],golem:["#3a2312","#ff8c42","熔核巨像"],
+      queen:["#2a1638","#c07ae8","虛空女王"],boss:["#7a1f2b","#e23b3b","地城守衛"]};
+    const bcol=BOSS_BAR[boss.type]||BOSS_BAR.boss;
+    let frac;
+    if(boss.type==="fang"){ // 雙子共用一條合計血條
+      let hp=0;
+      for(const e of enemies)if(e.type==="fang"&&!e.dead)hp+=e.hp;
+      frac=clamp(hp/(boss.maxhp*2),0,1);
+    }else frac=clamp(boss.hp/boss.maxhp,0,1);
     cx.fillStyle=bcol[0];cx.fillRect(bx0,17,bw,10);
-    cx.fillStyle=bcol[1];cx.fillRect(bx0,17,bw*clamp(boss.hp/boss.maxhp,0,1),10);
+    cx.fillStyle=bcol[1];cx.fillRect(bx0,17,bw*frac,10);
     cx.fillStyle="#e8e3d8";cx.font="11px 'Courier New',monospace";cx.textAlign="center";
     cx.fillText(bcol[2],W/2,12);cx.textAlign="left";
   }
@@ -1119,6 +1347,7 @@ function render(){
   cx.translate(G.shakeX,G.shakeY);
   drawFloorBg();
   drawStairs();
+  drawHazards();
   drawOrbs();
   // 依 y 排序繪製：站得越低（越近）的越晚畫，前方遮住後方
   const ents=[];
@@ -1339,7 +1568,7 @@ function startGame(){
   $("floorTag").textContent="地下 1 層";
   $("lvTag").textContent=player.lvl;
   $("equipTag").textContent=`劍 +${player.swordTier}・甲 +${player.armorTier}`;
-  enemies=[];particles=[];dmgNums=[];slashes=[];orbs=[];drops=[];bullets=[];
+  enemies=[];particles=[];dmgNums=[];slashes=[];orbs=[];drops=[];bullets=[];hazards=[];
   ultTrails=[];G.ultSeq=null;
   stairs=null;boss=null;comboCount=0;
   spawnFloor();
