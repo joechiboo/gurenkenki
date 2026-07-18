@@ -28,21 +28,23 @@
     text-shadow:0 0 8px rgba(226,59,59,.7);opacity:0;transition:opacity .2s;}
   .ctl{position:fixed;z-index:6;}
   #stick{left:16px;bottom:calc(env(safe-area-inset-bottom,0px) + 20px);
-    width:120px;height:120px;border-radius:50%;border:2px solid rgba(232,227,216,.25);
-    background:rgba(255,255,255,.04);}
+    width:120px;height:120px;border-radius:50%;border:2px solid rgba(232,227,216,.45);
+    background:rgba(255,255,255,.09);}
   #knob{position:absolute;left:50%;top:50%;width:52px;height:52px;border-radius:50%;
-    background:rgba(232,227,216,.28);transform:translate(-50%,-50%);}
+    background:rgba(232,227,216,.4);transform:translate(-50%,-50%);}
   .btn{border-radius:50%;display:flex;align-items:center;justify-content:center;
-    letter-spacing:2px;color:var(--bone);border:2px solid rgba(232,227,216,.3);
-    background:rgba(255,255,255,.05);}
+    letter-spacing:2px;color:var(--bone);border:2px solid rgba(232,227,216,.5);
+    background:rgba(255,255,255,.1);}
   .btn:active{background:rgba(226,59,59,.35);}
   #btnAtk{width:78px;height:78px;font-size:14px;right:20px;
     bottom:calc(env(safe-area-inset-bottom,0px) + 26px);border-color:rgba(226,59,59,.6);}
   #btnUlt{width:62px;height:62px;font-size:11px;right:106px;
     bottom:calc(env(safe-area-inset-bottom,0px) + 92px);border-color:rgba(255,209,102,.7);
     color:var(--gold);position:fixed;overflow:hidden;transition:border-color .2s,color .2s;}
-  #btnUlt.cd{border-color:rgba(232,227,216,.18);color:rgba(232,227,216,.4);}
+  #btnUlt.cd{border-color:rgba(232,227,216,.35);color:rgba(232,227,216,.75);}
   #btnUlt.cd #ultLabel{font-size:18px;font-weight:bold;}
+  #btnUlt.lock{border-color:rgba(255,209,102,.5);color:var(--gold);}
+  #btnUlt.lock #ultLabel{font-size:12px;line-height:1.35;font-weight:bold;}
   #ultCdMask{position:absolute;inset:0;border-radius:50%;pointer-events:none;}
   #ultLabel{position:relative;z-index:1;}
   #overlay{position:fixed;inset:0;z-index:10;overflow:hidden;
@@ -1065,19 +1067,19 @@ function updateFx(){
   tag.textContent=comboCount+" COMBO";
   // 光之太刀 CD：環形倒數 + 秒數
   const ultBtn=$("btnUlt"),ultLbl=$("ultLabel"),ultMask=$("ultCdMask");
-  if(player.lvl<5){ // Lv5 才習得奧義
-    ultMask.style.background="rgba(0,0,0,0.78)";
-    ultLbl.textContent="Lv5";
-    ultBtn.classList.add("cd");
+  if(player.lvl<5){ // Lv5 才習得奧義：鎖定但清楚標示
+    ultMask.style.background="rgba(0,0,0,0.5)";
+    ultLbl.innerHTML="Lv5<br>解鎖";
+    ultBtn.classList.add("cd","lock");
   }else if(player.ultCd>0){
     const frac=player.ultCd/ULT_CD;
     ultMask.style.background=`conic-gradient(rgba(0,0,0,0.78) ${frac*360}deg, transparent ${frac*360}deg)`;
     ultLbl.textContent=Math.ceil(player.ultCd/60);
-    ultBtn.classList.add("cd");
+    ultBtn.classList.add("cd");ultBtn.classList.remove("lock");
   }else{
     ultMask.style.background="none";
     ultLbl.textContent=player.lvl>=15?"光返し":player.lvl>=10?"光太刀":"無音太刀";
-    ultBtn.classList.remove("cd");
+    ultBtn.classList.remove("cd","lock");
   }
 }
 
