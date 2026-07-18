@@ -236,7 +236,9 @@ let comboCount=0,comboFade=0;
 function queueAttack(){if(G.running)player.atkQueue=true;}
 function queueDash(dir){if(G.running){player.dashQueue=true;player.dashDir=dir||null;}}
 function queueUlt(){if(G.running&&player.lvl>=5)player.ultQueue=true;}
-const atkPower=()=>player.atkMul*(1+player.swordTier*0.15);
+const atkPower=()=>player.atkMul*(1+player.swordTier*0.15); // 攻擊力成長 × 劍強化加成
+const ATK_LIGHT=11,ATK_HEAVY=22; // 普攻基礎傷害（輕斬／三段重斬）
+const ULT_MUL=[0,2.2,2.9,2.4];   // 奧義每刀倍率（×重斬）：無音之太刀／光之太刀／光返し
 
 // ============ 樓層色調 ============
 const PALETTES=[
@@ -411,7 +413,7 @@ function doSlash(third){
   const ang=target?Math.atan2(target.y-p.y,target.x-p.x):(p.face>0?0:Math.PI);
   if(Math.abs(Math.cos(ang))>0.2)p.face=Math.cos(ang)>0?1:-1;
   p.atkAng=ang;
-  const baseDmg=(third?22:11)*atkPower();
+  const baseDmg=(third?ATK_HEAVY:ATK_LIGHT)*atkPower();
   slashArc(p.x+Math.cos(ang)*18,p.y+Math.sin(ang)*18,ang,range,third?"#ffd166":"#ff8c42");
   if(third)shake(7);
   let hitAny=false;
@@ -531,7 +533,7 @@ function updateUltSeq(){
     if(--s.t<=0){
       s.phase="strike";
       // 一齊裂開
-      const dmgBase=[0,48,64,52][s.tier]*atkPower(); // 每一刀的基礎傷害
+      const dmgBase=ATK_HEAVY*atkPower()*ULT_MUL[s.tier]; // 奧義=重斬傷害×倍率，隨攻擊力與劍加成成長
       const col=s.tier===1?"#cfd6dd":"#ffd166";
       let hits=0;
       for(const seg of s.path){
