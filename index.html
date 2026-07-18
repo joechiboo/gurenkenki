@@ -150,7 +150,7 @@
       奧義：奧義鍵 / Q（時停演出・冷卻 12 秒）<br>
       Lv5「無音之太刀」直線居合，斬擊路徑上所有敵人<br>
       Lv10「光之太刀」多目標瞬身連斬，單體時連續穿斬<br>
-      Lv15「光返し」連斬後折返再斬一輪，單體穿斬更多刀<br><br>
+      Lv15「光返し」折返再斬一輪＋終結十字斬，返照斬滅全場彈幕，每擊殺冷卻 -1 秒<br><br>
       擊殺獲得經驗，精英與頭目掉落裝備<br>
       劍：攻擊與範圍提升／甲：減傷與血量提升<br>
       每 5 層有頭目鎮守，第 10 層起出現異形魔王<br>
@@ -500,7 +500,7 @@ function doUlt(){
       const passes=tier===3?6:4;
       for(let i=0;i<passes;i++){
         const end={x:clamp(t.x+Math.cos(a)*52,26,W-26),y:clamp(t.y+Math.sin(a)*52,TOP+6,H-30)};
-        path.push({x1:cur.x,y1:cur.y,x2:end.x,y2:end.y,targets:[t]});
+        path.push({x1:cur.x,y1:cur.y,x2:end.x,y2:end.y,targets:[t],ret:tier===3&&i%2?1:0});
         cur=end;a+=2.4; // 換個角度再穿一刀
       }
     }else{
@@ -511,12 +511,12 @@ function doUlt(){
         path.push({x1:cur.x,y1:cur.y,x2:end.x,y2:end.y,targets:[t]});
         cur=end;
       }
-      if(tier===3){ // 光返し折返：反向再穿過每個目標一次
+      if(tier===3){ // 光返し折返：反向再穿過每個目標一次（返程為純白光）
         for(let i=targets.length-1;i>=0;i--){
           const t=targets[i];
           const a=Math.atan2(t.y-cur.y,t.x-cur.x);
           const end={x:clamp(t.x+Math.cos(a)*46,26,W-26),y:clamp(t.y+Math.sin(a)*46,TOP+6,H-30)};
-          path.push({x1:cur.x,y1:cur.y,x2:end.x,y2:end.y,targets:[t]});
+          path.push({x1:cur.x,y1:cur.y,x2:end.x,y2:end.y,targets:[t],ret:1});
           cur=end;
         }
       }
@@ -556,7 +556,7 @@ function updateUltSeq(){
       if(!t.dead)burst(t.x,t.y,"#fff",5,4); // 掠過的火花，傷害還沒發生
     if(s.segT>=5){
       ultTrails.push({x1:seg.x1,y1:seg.y1,x2:seg.x2,y2:seg.y2,life:40,max:40,
-        rgb:s.tier===1?"207,214,221":"255,209,102"}); // 無音之太刀：銀白無光劍痕
+        rgb:s.tier===1?"207,214,221":seg.ret?"255,255,255":"255,209,102"}); // 無音銀白／去程金光／返程純白
       s.idx++;s.segT=0;
       if(s.idx>=s.path.length){s.phase="sheath";s.t=20;}
     }
@@ -566,7 +566,7 @@ function updateUltSeq(){
       // 一齊裂開
       const dmgBase=ATK_HEAVY*atkPower()*ULT_MUL[s.tier]; // 奧義=重斬傷害×倍率，隨攻擊力與劍加成成長
       const col=s.tier===1?"#cfd6dd":"#ffd166";
-      let hits=0;
+      let hits=0,kills=0;
       for(const seg of s.path){
         if(!seg.targets)continue;
         for(const e of seg.targets){
@@ -577,7 +577,26 @@ function updateUltSeq(){
           burst(e.x,e.y,col,18,8);
           burst(e.x,e.y,"#fff",8,6);
           dmgNum(e.x,e.y,dmg,true);
-          if(e.hp<=0)killEnemy(e);
+          if(e.hp<=0){kills++;killEnemy(e);}
+        }
+      }
+      if(s.tier===3){ // 返照終結：斬滅全場彈幕 + 十字光刃追擊 + 擊殺回轉冷卻
+        for(const b of bullets)burst(b.x,b.y,"#ffd166",3,3);
+        bullets=[];
+        const R2=150*(1+p.swordTier*0.08);
+        for(const e of enemies){
+          if(e.dead||dist2(player,e)>=R2*R2)continue;
+          const dmg=dmgBase*0.6*rnd(0.9,1.1);
+          e.hp-=dmg;e.flash=10;hits++;
+          dmgNum(e.x,e.y,dmg,true);
+          burst(e.x,e.y,"#fff",6,5);
+          if(e.hp<=0){kills++;killEnemy(e);}
+        }
+        ultTrails.push({x1:p.x-170,y1:p.y,x2:p.x+170,y2:p.y,life:34,max:34,rgb:"255,255,255"});
+        ultTrails.push({x1:p.x,y1:p.y-140,x2:p.x,y2:p.y+140,life:34,max:34,rgb:"255,255,255"});
+        if(kills>0){
+          p.ultCd=Math.max(120,p.ultCd-kills*60); // 每擊殺回轉 1 秒冷卻
+          dmgNum(p.x,p.y-28,0,true,`回轉 -${kills} 秒`);
         }
       }
       comboCount+=hits;comboFade=90;
