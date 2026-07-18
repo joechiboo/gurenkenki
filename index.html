@@ -59,8 +59,9 @@
   @keyframes rise{0%{transform:translateY(0);opacity:0}
     15%{opacity:.9}80%{opacity:.5}
     100%{transform:translateY(-72vh) translateX(14px);opacity:0}}
-  #heroCv{height:min(300px,36vh);image-rendering:pixelated;position:relative;z-index:1;
-    background:transparent;filter:drop-shadow(0 0 18px rgba(226,59,59,.35));}
+  #coverCv{height:min(330px,40vh);position:relative;z-index:1;
+    background:transparent;filter:drop-shadow(0 0 24px rgba(226,59,59,.4));}
+  #heroCv{height:110px;image-rendering:pixelated;background:transparent;margin-bottom:4px;}
   #ovEyebrow{font-size:12px;letter-spacing:6px;color:var(--ember);position:relative;z-index:1;}
   #overlay h1{font-size:52px;letter-spacing:14px;color:var(--bone);position:relative;z-index:1;
     text-shadow:0 0 6px rgba(232,227,216,.3),0 4px 0 var(--crimson),0 0 34px rgba(226,59,59,.55);}
@@ -121,7 +122,7 @@
   <span class="ember" style="left:62%;animation-delay:0.6s"></span>
   <span class="ember" style="left:81%;animation-delay:2s"></span>
   <span class="ember" style="left:50%;animation-delay:2.8s"></span>
-  <canvas id="heroCv" width="80" height="100"></canvas>
+  <canvas id="coverCv" width="360" height="460"></canvas>
   <div id="ovEyebrow">劍神流・地城試煉</div>
   <h1 id="ovTitle">紅蓮劍姬</h1>
   <div class="sub" id="ovSub">紅髮的劍士孤身立於地城之口<br>斬開黑暗，直至最深層</div>
@@ -133,6 +134,7 @@
 
 <div id="helpPanel" class="hidden">
   <div id="helpBox">
+    <canvas id="heroCv" width="80" height="100"></canvas>
     <h2>操作說明</h2>
     <div class="helpBody">
       移動：左搖桿 / WASD・方向鍵<br>
@@ -260,16 +262,18 @@ const E_TYPES={
   bat:{r:11,hp:18,speed:2.6,dmg:6,color:"#8b5fbf",exp:7},
   brute:{r:24,hp:120,speed:1.1,dmg:20,color:"#b0413e",exp:30},
   boss:{r:34,hp:420,speed:1.25,dmg:24,color:"#7a1f2b",exp:120},
-  prism:{r:28,hp:520,speed:1.1,dmg:22,color:"#8b5fbf",exp:200}
+  prism:{r:28,hp:520,speed:1.1,dmg:22,color:"#8b5fbf",exp:200},
+  kenki:{r:26,hp:640,speed:1.5,dmg:26,color:"#3b2547",exp:320}
 };
 function spawnFloor(){
   enemies=[];bullets=[];stairs=null;boss=null;G.clearTimer=0;
   const f=G.floor;
-  if(f%5===0){ // 頭目層：第10層起每逢10為三角魔王
-    const kind=(f%10===0)?"prism":"boss";
+  if(f%5===0){ // 頭目層輪替：5守衛 → 10稜鏡 → 15劍鬼 → 20稜鏡…
+    const kind=f%15===0?"kenki":f%10===0?"prism":"boss";
     boss=makeEnemy(kind,f);
     boss.state="chase";boss.stateT=120;
     if(kind==="prism"){boss.state="orbit";boss.orbA=rnd(0,6.28);boss.spin=0;boss.dashN=0;}
+    if(kind==="kenki"){boss.state="stalk";boss.stateT=90;boss.slashN=0;}
     enemies.push(boss);
     for(let i=0;i<2;i++)enemies.push(makeEnemy("slime",f));
     return;
@@ -593,7 +597,7 @@ function killEnemy(e){
   }
   // 精英/頭目掉裝
   if(e.type==="brute"&&Math.random()<0.6)dropItem(e.x,e.y);
-  if(e.type==="boss"||e.type==="prism"){dropItem(e.x-16,e.y);dropItem(e.x+16,e.y);boss=null;shake(14);G.flash=10;}
+  if(e.type==="boss"||e.type==="prism"||e.type==="kenki"){dropItem(e.x-16,e.y);dropItem(e.x+16,e.y);boss=null;shake(14);G.flash=10;}
   player.hp=Math.min(player.maxhp,player.hp+1.5);
 }
 function dropItem(x,y){
@@ -612,6 +616,7 @@ function updateEnemies(){
 
     if(e.type==="boss")updateBoss(e,dx,dy,d);
     else if(e.type==="prism")updatePrism(e,dx,dy,d);
+    else if(e.type==="kenki")updateKenki(e,dx,dy,d);
     else{
       let sp=e.speed;
       if(e.type==="bat")sp*=1+Math.sin(e.wobble*2)*0.5;
@@ -702,6 +707,47 @@ function updatePrism(e,dx,dy,d){
       e.dashN--;
       if(e.dashN>0){e.state="triwind";e.stateT=24;}
       else{e.state="orbit";e.stateT=Math.round(rnd(240,320));e.orbA=Math.atan2(e.y-player.y,e.x-player.x);}
+    }
+  }
+}
+// 第15層魔王「深淵劍鬼」：瞬身消失、貼身拔刀二連斬、五連斬擊波
+function updateKenki(e,dx,dy,d){
+  e.stateT--;
+  if(e.state==="stalk"){ // 進逼
+    if(d>e.r+player.r-4){e.x+=dx/d*e.speed*1.25;e.y+=dy/d*e.speed*1.25;}
+    if(e.stateT<=0){
+      if(d<260){e.state="blinkwind";e.stateT=26;}
+      else{e.state="wave";e.stateT=10;}
+    }
+  }else if(e.state==="blinkwind"){ // 消失前兆（殘影閃爍）
+    if(e.stateT<=0){
+      burst(e.x,e.y,"#3b2547",12,5);
+      const a=rnd(0,6.28);
+      e.x=clamp(player.x+Math.cos(a)*95,30,W-30);
+      e.y=clamp(player.y+Math.sin(a)*95,TOP+10,H-30);
+      burst(e.x,e.y,"#8b5fbf",10,5);
+      e.state="slashwind";e.stateT=16;e.slashN=2;
+    }
+  }else if(e.state==="slashwind"){ // 拔刀預兆
+    if(e.stateT<=0){
+      const a=Math.atan2(player.y-e.y,player.x-e.x);
+      e.cx=Math.cos(a);e.cy=Math.sin(a);
+      e.state="slash";e.stateT=11;shake(3);
+    }
+  }else if(e.state==="slash"){ // 高速拔刀突進，二連
+    e.x+=e.cx*11;e.y+=e.cy*11;
+    if(e.stateT<=0){
+      e.slashN--;
+      if(e.slashN>0){e.state="slashwind";e.stateT=13;}
+      else{e.state="stalk";e.stateT=Math.round(rnd(80,130));}
+    }
+  }else if(e.state==="wave"){ // 五連斬擊波
+    if(e.stateT<=0){
+      const base=Math.atan2(player.y-e.y,player.x-e.x);
+      for(const off of [-0.5,-0.25,0,0.25,0.5])
+        bullets.push({x:e.x,y:e.y,vx:Math.cos(base+off)*3.6,vy:Math.sin(base+off)*3.6,r:6,dmg:e.dmg*0.55,life:180});
+      burst(e.x,e.y,"#e23b3b",10,4);
+      e.state="stalk";e.stateT=Math.round(rnd(90,140));
     }
   }
 }
@@ -906,6 +952,32 @@ function drawEnemy(e){
       cx.fillStyle=(e.state==="triwind"&&Math.floor(G.time/4)%2===0)?"#ff5544":"#d9c2ff";
       cx.beginPath();cx.arc(0,0,e.r*0.14,0,7);cx.fill();
       cx.restore();
+    }else if(e.type==="kenki"){
+      // 深淵劍鬼：紅黑氣場＋破斗篷剪影＋魔刀
+      const g=cx.createRadialGradient(e.x,e.y,4,e.x,e.y,e.r+22);
+      g.addColorStop(0,"rgba(226,59,59,0.3)");g.addColorStop(1,"rgba(0,0,0,0)");
+      cx.fillStyle=g;cx.beginPath();cx.arc(e.x,e.y,e.r+22,0,7);cx.fill();
+      const flick=(e.state==="blinkwind"||e.state==="slashwind")&&Math.floor(G.time/4)%2===0;
+      if(e.state==="blinkwind")cx.globalAlpha=0.55;
+      cx.fillStyle=flick?"#ff5544":col;
+      cx.beginPath();
+      cx.moveTo(e.x-e.r*0.8,e.y-e.r);
+      cx.lineTo(e.x+e.r*0.8,e.y-e.r);
+      cx.lineTo(e.x+e.r*0.9,e.y+e.r*0.9);
+      cx.lineTo(e.x+e.r*0.4,e.y+e.r*0.5);
+      cx.lineTo(e.x,e.y+e.r*0.95);
+      cx.lineTo(e.x-e.r*0.45,e.y+e.r*0.55);
+      cx.lineTo(e.x-e.r*0.9,e.y+e.r*0.9);
+      cx.closePath();cx.fill();
+      cx.fillStyle="#ff2e2e";
+      cx.fillRect(e.x-e.r*0.35,e.y-e.r*0.55,e.r*0.22,e.r*0.16);
+      cx.fillRect(e.x+e.r*0.13,e.y-e.r*0.55,e.r*0.22,e.r*0.16);
+      cx.save();cx.translate(e.x,e.y);
+      cx.rotate(e.state==="slash"?Math.atan2(e.cy||0,e.cx||1):-0.6+Math.sin(e.wobble)*0.1);
+      cx.fillStyle="#8b90a0";cx.fillRect(e.r*0.5,-2,e.r*1.4,4);
+      cx.fillStyle="#d9c2ff";cx.fillRect(e.r*0.5,-2,e.r*1.4,1.5);
+      cx.restore();
+      cx.globalAlpha=1;
     }else{
       cx.fillRect(e.x-e.r*0.7,e.y-e.r,e.r*1.4,e.r*1.8);
       cx.fillStyle="#1c1826";
@@ -924,7 +996,7 @@ function drawEnemy(e){
         cx.beginPath();cx.moveTo(e.x+e.r*0.6,e.y-e.r);cx.lineTo(e.x+e.r*0.9,e.y-e.r-14);cx.lineTo(e.x+e.r*0.3,e.y-e.r);cx.closePath();cx.fill();
       }
     }
-    if(e.hp<e.maxhp&&e.type!=="boss"&&e.type!=="prism"){
+    if(e.hp<e.maxhp&&e.type!=="boss"&&e.type!=="prism"&&e.type!=="kenki"){
       const w=e.r*2;
       cx.fillStyle="#000";cx.fillRect(e.x-e.r,e.y-e.r-10,w,4);
       cx.fillStyle="#e23b3b";cx.fillRect(e.x-e.r,e.y-e.r-10,w*clamp(e.hp/e.maxhp,0,1),4);
@@ -944,10 +1016,12 @@ function drawBossBar(){
   if(boss&&!boss.dead){
     const bw=W*0.5,bx0=(W-bw)/2;
     cx.fillStyle="rgba(0,0,0,0.7)";cx.fillRect(bx0-3,14,bw+6,16);
-    cx.fillStyle=boss.type==="prism"?"#4a2a66":"#7a1f2b";cx.fillRect(bx0,17,bw,10);
-    cx.fillStyle=boss.type==="prism"?"#8b5fbf":"#e23b3b";cx.fillRect(bx0,17,bw*clamp(boss.hp/boss.maxhp,0,1),10);
+    const bcol=boss.type==="prism"?["#4a2a66","#8b5fbf","深淵稜鏡"]:
+      boss.type==="kenki"?["#3b1220","#ff4a4a","深淵劍鬼"]:["#7a1f2b","#e23b3b","地城守衛"];
+    cx.fillStyle=bcol[0];cx.fillRect(bx0,17,bw,10);
+    cx.fillStyle=bcol[1];cx.fillRect(bx0,17,bw*clamp(boss.hp/boss.maxhp,0,1),10);
     cx.fillStyle="#e8e3d8";cx.font="11px 'Courier New',monospace";cx.textAlign="center";
-    cx.fillText(boss.type==="prism"?"深淵稜鏡":"地城守衛",W/2,12);cx.textAlign="left";
+    cx.fillText(bcol[2],W/2,12);cx.textAlign="left";
   }
 }
 function drawFx(){
@@ -1138,11 +1212,115 @@ function drawHero(t){
     if((i+Math.floor(t*0.1))%3===0)R(px,py,1.5,1.5,i%2?gold:red);
   }
 }
-function heroLoop(){
-  if(!overlay.classList.contains("hidden"))drawHero(performance.now()/16);
-  requestAnimationFrame(heroLoop);
+// ============ 封面主視覺（平滑向量風） ============
+const coverC=$("coverCv"),ccx=coverC.getContext("2d");
+function drawCover(t){
+  ccx.clearRect(0,0,360,460);
+  const sw=Math.sin(t*0.03),sw2=Math.sin(t*0.021+2);
+  // 背景紅色光暈與斬痕光弧
+  let g=ccx.createRadialGradient(210,200,20,210,200,230);
+  g.addColorStop(0,"rgba(226,59,59,0.16)");g.addColorStop(1,"rgba(0,0,0,0)");
+  ccx.fillStyle=g;ccx.fillRect(0,0,360,460);
+  ccx.save();
+  ccx.shadowColor="#e23b3b";ccx.shadowBlur=26;
+  ccx.strokeStyle="rgba(226,59,59,0.4)";ccx.lineWidth=13;
+  ccx.beginPath();ccx.arc(200,235,185,-1.05,0.75);ccx.stroke();
+  ccx.strokeStyle="rgba(255,150,120,0.8)";ccx.lineWidth=3;
+  ccx.beginPath();ccx.arc(200,235,185,-1.05,0.75);ccx.stroke();
+  ccx.restore();
+  // 身體：背影大衣
+  g=ccx.createLinearGradient(150,180,300,460);
+  g.addColorStop(0,"#2a2333");g.addColorStop(1,"#151020");
+  ccx.fillStyle=g;
+  ccx.beginPath();
+  ccx.moveTo(148,205);
+  ccx.quadraticCurveTo(215,168,284,200);
+  ccx.quadraticCurveTo(312,300,318,460);
+  ccx.lineTo(112,460);
+  ccx.quadraticCurveTo(122,300,148,205);
+  ccx.closePath();ccx.fill();
+  // 衣領紅圍巾
+  ccx.strokeStyle="#b3242c";ccx.lineWidth=14;
+  ccx.beginPath();ccx.moveTo(178,192);ccx.quadraticCurveTo(215,176,252,190);ccx.stroke();
+  // 右臂與手
+  ccx.strokeStyle="#241d30";ccx.lineWidth=17;ccx.lineCap="round";
+  ccx.beginPath();ccx.moveTo(276,208);ccx.quadraticCurveTo(300,232,314,256);ccx.stroke();
+  ccx.fillStyle="#e8bfa4";ccx.beginPath();ccx.arc(318,260,8,0,7);ccx.fill();
+  // 武士刀（斜指右上，白刃流光）
+  const bx1=323,by1=252,bx2=352,by2=64;
+  ccx.strokeStyle="#5a4a2b";ccx.lineWidth=8;
+  ccx.beginPath();ccx.moveTo(311,282);ccx.lineTo(320,258);ccx.stroke(); // 柄
+  ccx.fillStyle="#ffd166";ccx.fillRect(316,246,12,7); // 鍔
+  ccx.save();
+  ccx.shadowColor="#fff";ccx.shadowBlur=8;
+  ccx.strokeStyle="#cfd6dd";ccx.lineWidth=7;
+  ccx.beginPath();ccx.moveTo(bx1,by1);ccx.lineTo(bx2,by2);ccx.stroke();
+  ccx.strokeStyle="#ffffff";ccx.lineWidth=2.5;
+  ccx.beginPath();ccx.moveTo(bx1,by1);ccx.lineTo(bx2,by2);ccx.stroke();
+  const gp=(t*0.9%100)/100;
+  if(gp<0.85){
+    const gx=bx1+(bx2-bx1)*gp,gy=by1+(by2-by1)*gp;
+    ccx.fillStyle="rgba(255,255,255,0.95)";
+    ccx.beginPath();ccx.arc(gx,gy,4.5,0,7);ccx.fill();
+  }
+  ccx.restore();
+  // 頭部底髮
+  ccx.fillStyle="#a12626";
+  ccx.beginPath();ccx.arc(206,112,44,0,7);ccx.fill();
+  // 大波浪髮流（層疊粗筆畫、彼此重疊成一片，末端延伸出畫布）
+  ccx.lineCap="round";
+  const ribbons=[
+    [198,70, 48,130+sw*9,   56,480,       52,"#7e1b1b"],
+    [186,84, 70,160+sw*10,  60,470,       32,"#b32929"],
+    [220,74, 76,196+sw*12,  86,478,       44,"#a12626"],
+    [232,90, 116,248+sw2*10,134,486,      38,"#c93636"],
+    [240,102,160,272+sw*8,  180,488,      28,"#e14a3f"],
+    [226,118,192,306+sw2*9, 206,478,      16,"#8e1f1f"],
+    [210,62, 128,94+sw2*6,  96,260+sw*14, 15,"#ef644d"]
+  ];
+  for(const r of ribbons){
+    ccx.strokeStyle=r[7];ccx.lineWidth=r[6];
+    ccx.beginPath();ccx.moveTo(r[0],r[1]);
+    ccx.quadraticCurveTo(r[2],r[3],r[4],r[5]);
+    ccx.stroke();
+  }
+  // 呆毛
+  ccx.strokeStyle="#e14a3f";ccx.lineWidth=6;
+  ccx.beginPath();ccx.moveTo(206,66);ccx.quadraticCurveTo(216+sw*3,36,232,28+sw*4);ccx.stroke();
+  // 側臉（回眸的一線輪廓）
+  ccx.fillStyle="#f2d0b8";
+  ccx.beginPath();
+  ccx.moveTo(240,88);
+  ccx.quadraticCurveTo(266,118,243,158);
+  ccx.quadraticCurveTo(231,128,236,104);
+  ccx.closePath();ccx.fill();
+  // 兇悍紅眼（發光）
+  ccx.save();
+  ccx.shadowColor="#ff3b30";ccx.shadowBlur=16;
+  ccx.fillStyle="#e13530";
+  ccx.beginPath();ccx.ellipse(246,122,8,4.6,-0.24,0,7);ccx.fill();
+  ccx.restore();
+  ccx.fillStyle="#fff";ccx.fillRect(248,118,3,3);
+  ccx.strokeStyle="#7e1b1b";ccx.lineWidth=3.6;
+  ccx.beginPath();ccx.moveTo(236,111);ccx.lineTo(257,114);ccx.stroke(); // 壓低的眉
+  // 瀏海蓋回側臉上緣
+  ccx.strokeStyle="#c93636";ccx.lineWidth=9;
+  ccx.beginPath();ccx.moveTo(212,72);ccx.quadraticCurveTo(246,78,251,98);ccx.stroke();
+  // 飄浮火星
+  for(let i=0;i<7;i++){
+    const px=40+((i*53+t*0.9)%280),py=440-((t*0.7+i*61)%400);
+    const a=0.3+0.7*Math.abs(Math.sin(t*0.05+i));
+    ccx.fillStyle=i%2?`rgba(255,209,102,${a})`:`rgba(255,140,66,${a})`;
+    ccx.fillRect(px,py,3,3);
+  }
 }
-heroLoop();
+function uiLoop(){
+  const now=performance.now()/16;
+  if(!overlay.classList.contains("hidden"))drawCover(now);
+  if(!$("helpPanel").classList.contains("hidden"))drawHero(now);
+  requestAnimationFrame(uiLoop);
+}
+uiLoop();
 $("startBtn").addEventListener("click",startGame);
 $("helpBtn").addEventListener("click",()=>$("helpPanel").classList.remove("hidden"));
 $("helpClose").addEventListener("click",()=>$("helpPanel").classList.add("hidden"));
