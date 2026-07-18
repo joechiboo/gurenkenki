@@ -139,7 +139,7 @@
       擊殺獲得經驗，精英與頭目掉落裝備<br>
       劍：攻擊與範圍提升／甲：減傷與血量提升<br>
       每 5 層有頭目鎮守，第 10 層起出現異形魔王<br>
-      <span style="color:var(--gold)">死亡不會失去等級</span>，裝備需重新蒐集
+      <span style="color:var(--gold)">死亡不會失去等級與裝備</span>，可放心挑戰更深層
     </div>
     <button id="helpClose">返回</button>
   </div>
@@ -966,12 +966,11 @@ $("helpClose").addEventListener("click",()=>$("helpPanel").classList.add("hidden
 function startGame(){
   overlay.classList.add("hidden");
   G.running=true;G.floor=1;G.flash=0;
-  // 死亡不掉等級：保留 lvl/exp/攻擊/血量上限，只重置裝備與位置
-  Object.assign(player,{hp:player.maxhp,x:W/2,y:H-90,inv:30,
-    swordTier:0,armorTier:0,ultCd:0,combo:0});
+  // 死亡不掉等級也不掉裝備：保留 lvl/exp/攻擊/血量上限/劍甲強化，只重置位置與狀態
+  Object.assign(player,{hp:player.maxhp,x:W/2,y:H-90,inv:30,ultCd:0,combo:0});
   $("floorTag").textContent="地下 1 層";
   $("lvTag").textContent=player.lvl;
-  $("equipTag").textContent="劍 +0・甲 +0";
+  $("equipTag").textContent=`劍 +${player.swordTier}・甲 +${player.armorTier}`;
   enemies=[];particles=[];dmgNums=[];slashes=[];orbs=[];drops=[];bullets=[];
   ultTrails=[];G.ultSeq=null;
   stairs=null;boss=null;comboCount=0;
@@ -985,7 +984,7 @@ function gameOver(){
   $("ovSub").innerHTML=
     `你以 Lv ${player.lvl} 抵達了 <span style="color:var(--gold)">地下 ${G.floor} 層</span><br>`+
     `裝備：劍 +${player.swordTier}・甲 +${player.armorTier}<br><br>`+
-    `等級與能力已保留，再戰時從地下 1 層出發`;
+    `等級與裝備皆已保留，再戰時從地下 1 層出發`;
   $("startBtn").textContent="再次挑戰";
 }
 loop();
