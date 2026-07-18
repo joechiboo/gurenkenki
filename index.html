@@ -135,7 +135,8 @@
       移動：左搖桿 / WASD・方向鍵<br>
       攻擊：斬 鍵 或 點畫面（自動索敵・連按三連斬）<br>
       衝刺：快速滑動 / K・Shift（無敵幀）<br>
-      奧義「光之太刀」：奧義鍵 / Q（時停瞬身連斬・冷卻 12 秒）<br><br>
+      奧義「光之太刀」：Lv5 習得，奧義鍵 / Q（時停瞬身連斬・冷卻 12 秒）<br>
+      Lv10 進化為「光返し」：目標更多，折返再斬一輪<br><br>
       擊殺獲得經驗，精英與頭目掉落裝備<br>
       劍：攻擊與範圍提升／甲：減傷與血量提升<br>
       每 5 層有頭目鎮守，第 10 層起出現異形魔王<br>
@@ -227,7 +228,7 @@ addEventListener("resize",resize);resize();
 let comboCount=0,comboFade=0;
 function queueAttack(){if(G.running)player.atkQueue=true;}
 function queueDash(dir){if(G.running){player.dashQueue=true;player.dashDir=dir||null;}}
-function queueUlt(){if(G.running)player.ultQueue=true;}
+function queueUlt(){if(G.running&&player.lvl>=5)player.ultQueue=true;}
 const atkPower=()=>player.atkMul*(1+player.swordTier*0.15);
 
 // ============ 樓層色調 ============
@@ -379,6 +380,8 @@ function gainExp(v){
     p.lvl++;p.atkMul+=0.08;p.maxhp+=8;p.hp=Math.min(p.maxhp,p.hp+p.maxhp*0.3);
     $("lvTag").textContent=p.lvl;
     dmgNum(p.x,p.y-20,0,true,"LEVEL UP");
+    if(p.lvl===5)dmgNum(p.x,p.y-36,0,true,"習得奧義・光之太刀");
+    if(p.lvl===10)dmgNum(p.x,p.y-36,0,true,"奧義進化・光返し");
     burst(p.x,p.y,"#7fd0ff",20,6);shake(4);buzz(40);
   }
 }
@@ -431,10 +434,10 @@ let ultTrails=[];
 function doUlt(){
   const p=player;
   p.ultCd=ULT_CD;
-  // 鎖定範圍內最多 6 個目標，依角度排序形成連斬路徑
+  const evolved=p.lvl>=10; // Lv10 進化「光返し」：目標更多，去程斬完折返補斬一輪
   const R=260*(1+p.swordTier*0.08);
   const targets=enemies.filter(e=>!e.dead&&Math.hypot(e.x-p.x,e.y-p.y)<R)
-    .sort((a,b)=>dist2(player,a)-dist2(player,b)).slice(0,6);
+    .sort((a,b)=>dist2(player,a)-dist2(player,b)).slice(0,evolved?8:6);
   // 路徑：起點 → 依序穿過每個目標（穿過身後一小段）
   const path=[];let cur={x:p.x,y:p.y};
   if(targets.length===0){
@@ -447,6 +450,15 @@ function doUlt(){
       path.push({x1:cur.x,y1:cur.y,x2:end.x,y2:end.y,target:t});
       cur=end;
     }
+    if(evolved){ // 折返：反向再穿過每個目標一次
+      for(let i=targets.length-1;i>=0;i--){
+        const t=targets[i];
+        const a=Math.atan2(t.y-cur.y,t.x-cur.x);
+        const end={x:clamp(t.x+Math.cos(a)*46,26,W-26),y:clamp(t.y+Math.sin(a)*46,70,H-30)};
+        path.push({x1:cur.x,y1:cur.y,x2:end.x,y2:end.y,target:t});
+        cur=end;
+      }
+    }
     // 收尾脫離段：順著最後方向再閃 90px，落點遠離敵群
     const last=path[path.length-1];
     const la=Math.atan2(last.y2-last.y1,last.x2-last.x1);
@@ -454,7 +466,7 @@ function doUlt(){
       x2:clamp(last.x2+Math.cos(la)*90,26,W-26),
       y2:clamp(last.y2+Math.sin(la)*90,70,H-30)});
   }
-  G.ultSeq={phase:"charge",t:24,path,idx:0,segT:0,targets,dim:0};
+  G.ultSeq={phase:"charge",t:24,path,idx:0,segT:0,targets,dim:0,evolved};
   p.inv=999; // 全程無敵，結束時歸還
   buzz(20);
 }
@@ -487,7 +499,7 @@ function updateUltSeq(){
     if(--s.t<=0){
       s.phase="strike";
       // 一齊裂開
-      const dmgBase=64*atkPower();
+      const dmgBase=(s.evolved?52:64)*atkPower(); // 光返し每目標吃兩刀，單刀略降、總傷更高
       for(const seg of s.path){
         const e=seg.target;
         if(!e||e.dead)continue;
@@ -929,14 +941,18 @@ function updateFx(){
   tag.textContent=comboCount+" COMBO";
   // 光之太刀 CD：環形倒數 + 秒數
   const ultBtn=$("btnUlt"),ultLbl=$("ultLabel"),ultMask=$("ultCdMask");
-  if(player.ultCd>0){
+  if(player.lvl<5){ // Lv5 才習得奧義
+    ultMask.style.background="rgba(0,0,0,0.78)";
+    ultLbl.textContent="Lv5";
+    ultBtn.classList.add("cd");
+  }else if(player.ultCd>0){
     const frac=player.ultCd/ULT_CD;
     ultMask.style.background=`conic-gradient(rgba(0,0,0,0.78) ${frac*360}deg, transparent ${frac*360}deg)`;
     ultLbl.textContent=Math.ceil(player.ultCd/60);
     ultBtn.classList.add("cd");
   }else{
     ultMask.style.background="none";
-    ultLbl.textContent="光太刀";
+    ultLbl.textContent=player.lvl>=10?"光返し":"光太刀";
     ultBtn.classList.remove("cd");
   }
 }
