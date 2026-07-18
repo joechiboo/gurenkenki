@@ -135,8 +135,8 @@
       移動：左搖桿 / WASD・方向鍵<br>
       攻擊：斬 鍵 或 點畫面（自動索敵・連按三連斬）<br>
       衝刺：快速滑動 / K・Shift（無敵幀）<br>
-      奧義「光之太刀」：Lv5 習得，奧義鍵 / Q（時停瞬身連斬・冷卻 12 秒）<br>
-      Lv10 進化為「光返し」：目標更多，折返再斬一輪<br><br>
+      奧義：奧義鍵 / Q（時停瞬身連斬・冷卻 12 秒）<br>
+      Lv5「無音之太刀」→ Lv10「光之太刀」→ Lv15「光返し」折返再斬一輪<br><br>
       擊殺獲得經驗，精英與頭目掉落裝備<br>
       劍：攻擊與範圍提升／甲：減傷與血量提升<br>
       每 5 層有頭目鎮守，第 10 層起出現異形魔王<br>
@@ -380,8 +380,9 @@ function gainExp(v){
     p.lvl++;p.atkMul+=0.08;p.maxhp+=8;p.hp=Math.min(p.maxhp,p.hp+p.maxhp*0.3);
     $("lvTag").textContent=p.lvl;
     dmgNum(p.x,p.y-20,0,true,"LEVEL UP");
-    if(p.lvl===5)dmgNum(p.x,p.y-36,0,true,"習得奧義・光之太刀");
-    if(p.lvl===10)dmgNum(p.x,p.y-36,0,true,"奧義進化・光返し");
+    if(p.lvl===5)dmgNum(p.x,p.y-36,0,true,"習得奧義・無音之太刀");
+    if(p.lvl===10)dmgNum(p.x,p.y-36,0,true,"奧義進化・光之太刀");
+    if(p.lvl===15)dmgNum(p.x,p.y-36,0,true,"奧義極致・光返し");
     burst(p.x,p.y,"#7fd0ff",20,6);shake(4);buzz(40);
   }
 }
@@ -434,10 +435,10 @@ let ultTrails=[];
 function doUlt(){
   const p=player;
   p.ultCd=ULT_CD;
-  const evolved=p.lvl>=10; // Lv10 進化「光返し」：目標更多，去程斬完折返補斬一輪
+  const tier=p.lvl>=15?3:p.lvl>=10?2:1; // 1 無音之太刀 / 2 光之太刀 / 3 光返し
   const R=260*(1+p.swordTier*0.08);
   const targets=enemies.filter(e=>!e.dead&&Math.hypot(e.x-p.x,e.y-p.y)<R)
-    .sort((a,b)=>dist2(player,a)-dist2(player,b)).slice(0,evolved?8:6);
+    .sort((a,b)=>dist2(player,a)-dist2(player,b)).slice(0,[0,4,6,8][tier]);
   // 路徑：起點 → 依序穿過每個目標（穿過身後一小段）
   const path=[];let cur={x:p.x,y:p.y};
   if(targets.length===0){
@@ -450,7 +451,7 @@ function doUlt(){
       path.push({x1:cur.x,y1:cur.y,x2:end.x,y2:end.y,target:t});
       cur=end;
     }
-    if(evolved){ // 折返：反向再穿過每個目標一次
+    if(tier===3){ // 光返し折返：反向再穿過每個目標一次
       for(let i=targets.length-1;i>=0;i--){
         const t=targets[i];
         const a=Math.atan2(t.y-cur.y,t.x-cur.x);
@@ -466,7 +467,7 @@ function doUlt(){
       x2:clamp(last.x2+Math.cos(la)*90,26,W-26),
       y2:clamp(last.y2+Math.sin(la)*90,70,H-30)});
   }
-  G.ultSeq={phase:"charge",t:24,path,idx:0,segT:0,targets,dim:0,evolved};
+  G.ultSeq={phase:"charge",t:24,path,idx:0,segT:0,targets,dim:0,tier};
   p.inv=999; // 全程無敵，結束時歸還
   buzz(20);
 }
@@ -477,7 +478,8 @@ function updateUltSeq(){
     if(s.t%2===0){
       const a=rnd(0,6.28),r=rnd(60,110);
       particles.push({x:p.x+Math.cos(a)*r,y:p.y+Math.sin(a)*r,
-        vx:-Math.cos(a)*3.4,vy:-Math.sin(a)*3.4,life:16,max:16,color:"#ffd166",size:3});
+        vx:-Math.cos(a)*3.4,vy:-Math.sin(a)*3.4,life:16,max:16,
+        color:s.tier===1?"#cfd6dd":"#ffd166",size:3});
     }
     if(--s.t<=0){s.phase="dash";s.segT=0;buzz(15);}
   }else if(s.phase==="dash"){ // 沿路徑瞬身，每段 5 幀
@@ -491,7 +493,8 @@ function updateUltSeq(){
       burst(seg.target.x,seg.target.y,"#fff",5,4); // 掠過的火花，傷害還沒發生
     }
     if(s.segT>=5){
-      ultTrails.push({x1:seg.x1,y1:seg.y1,x2:seg.x2,y2:seg.y2,life:40,max:40});
+      ultTrails.push({x1:seg.x1,y1:seg.y1,x2:seg.x2,y2:seg.y2,life:40,max:40,
+        rgb:s.tier===1?"207,214,221":"255,209,102"}); // 無音之太刀：銀白無光劍痕
       s.idx++;s.segT=0;
       if(s.idx>=s.path.length){s.phase="sheath";s.t=20;}
     }
@@ -499,14 +502,15 @@ function updateUltSeq(){
     if(--s.t<=0){
       s.phase="strike";
       // 一齊裂開
-      const dmgBase=(s.evolved?52:64)*atkPower(); // 光返し每目標吃兩刀，單刀略降、總傷更高
+      const dmgBase=[0,40,64,52][s.tier]*atkPower(); // 光返し每目標吃兩刀，單刀略降、總傷更高
+      const col=s.tier===1?"#cfd6dd":"#ffd166";
       for(const seg of s.path){
         const e=seg.target;
         if(!e||e.dead)continue;
         const dmg=dmgBase*rnd(0.95,1.15);
         e.hp-=dmg;e.flash=10;
-        slashArc(e.x,e.y,rnd(0,6.28),e.r*2.6,"#ffd166");
-        burst(e.x,e.y,"#ffd166",18,8);
+        slashArc(e.x,e.y,rnd(0,6.28),e.r*2.6,col);
+        burst(e.x,e.y,col,18,8);
         burst(e.x,e.y,"#fff",8,6);
         dmgNum(e.x,e.y,dmg,true);
         if(e.hp<=0)killEnemy(e);
@@ -526,9 +530,10 @@ function drawUltOverlay(){
   // 殘光軌跡
   for(const t of ultTrails){
     const a=t.life/t.max;
-    cx.strokeStyle=`rgba(255,209,102,${a})`;
+    const rgb=t.rgb||"255,209,102";
+    cx.strokeStyle=`rgba(${rgb},${a})`;
     cx.lineWidth=6*a+1;
-    cx.shadowColor="#ffd166";cx.shadowBlur=14*a;
+    cx.shadowColor=`rgb(${rgb})`;cx.shadowBlur=14*a;
     cx.beginPath();cx.moveTo(t.x1,t.y1);cx.lineTo(t.x2,t.y2);cx.stroke();
     cx.strokeStyle=`rgba(255,255,255,${a*0.9})`;cx.lineWidth=2*a;
     cx.beginPath();cx.moveTo(t.x1,t.y1);cx.lineTo(t.x2,t.y2);cx.stroke();
@@ -952,7 +957,7 @@ function updateFx(){
     ultBtn.classList.add("cd");
   }else{
     ultMask.style.background="none";
-    ultLbl.textContent=player.lvl>=10?"光返し":"光太刀";
+    ultLbl.textContent=player.lvl>=15?"光返し":player.lvl>=10?"光太刀":"無音太刀";
     ultBtn.classList.remove("cd");
   }
 }
