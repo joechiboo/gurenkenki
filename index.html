@@ -135,8 +135,10 @@
       移動：左搖桿 / WASD・方向鍵<br>
       攻擊：斬 鍵 或 點畫面（自動索敵・連按三連斬）<br>
       衝刺：快速滑動 / K・Shift（無敵幀）<br>
-      奧義：奧義鍵 / Q（時停瞬身連斬・冷卻 12 秒）<br>
-      Lv5「無音之太刀」→ Lv10「光之太刀」→ Lv15「光返し」折返再斬一輪<br><br>
+      奧義：奧義鍵 / Q（時停演出・冷卻 12 秒）<br>
+      Lv5「無音之太刀」直線居合，斬擊路徑上所有敵人<br>
+      Lv10「光之太刀」多目標瞬身連斬，單體時連續穿斬<br>
+      Lv15「光返し」連斬後折返再斬一輪，單體穿斬更多刀<br><br>
       擊殺獲得經驗，精英與頭目掉落裝備<br>
       劍：攻擊與範圍提升／甲：減傷與血量提升<br>
       每 5 層有頭目鎮守，第 10 層起出現異形魔王<br>
@@ -168,6 +170,11 @@ const rnd=(a,b)=>a+Math.random()*(b-a);
 const clamp=(v,a,b)=>v<a?a:v>b?b:v;
 const depthS=y=>0.85+0.25*clamp((y-58)/(H-58),0,1); // 2.5D 深度比例：越靠畫面下方（越近）畫越大
 const dist2=(a,b)=>{const dx=a.x-b.x,dy=a.y-b.y;return dx*dx+dy*dy;};
+function segDist(px,py,x1,y1,x2,y2){ // 點到線段的距離
+  const dx=x2-x1,dy=y2-y1,L2=dx*dx+dy*dy||1;
+  const t=clamp(((px-x1)*dx+(py-y1)*dy)/L2,0,1);
+  return Math.hypot(px-(x1+dx*t),py-(y1+dy*t));
+}
 const $=id=>document.getElementById(id);
 
 // ============ 輸入 ============
@@ -437,37 +444,60 @@ function doUlt(){
   p.ultCd=ULT_CD;
   const tier=p.lvl>=15?3:p.lvl>=10?2:1; // 1 無音之太刀 / 2 光之太刀 / 3 光返し
   const R=260*(1+p.swordTier*0.08);
-  const targets=enemies.filter(e=>!e.dead&&Math.hypot(e.x-p.x,e.y-p.y)<R)
-    .sort((a,b)=>dist2(player,a)-dist2(player,b)).slice(0,[0,4,6,8][tier]);
-  // 路徑：起點 → 依序穿過每個目標（穿過身後一小段）
   const path=[];let cur={x:p.x,y:p.y};
-  if(targets.length===0){
-    const a=p.face>0?0:Math.PI;
-    path.push({x1:cur.x,y1:cur.y,x2:clamp(cur.x+Math.cos(a)*180,30,W-30),y2:cur.y});
+  let targets=[];
+  const alive=enemies.filter(e=>!e.dead&&Math.hypot(e.x-p.x,e.y-p.y)<R)
+    .sort((a,b)=>dist2(player,a)-dist2(player,b));
+  if(tier===1){
+    // 無音之太刀：朝最近敵人一直線居合，斬擊直線上所有敵人
+    const aim=alive[0];
+    const a=aim?Math.atan2(aim.y-p.y,aim.x-p.x):(p.face>0?0:Math.PI);
+    const end={x:clamp(p.x+Math.cos(a)*300,26,W-26),y:clamp(p.y+Math.sin(a)*300,70,H-30)};
+    targets=enemies.filter(e=>!e.dead&&segDist(e.x,e.y,p.x,p.y,end.x,end.y)<e.r+26);
+    path.push({x1:p.x,y1:p.y,x2:end.x,y2:end.y,targets});
   }else{
-    for(const t of targets){
-      const a=Math.atan2(t.y-cur.y,t.x-cur.x);
-      const end={x:clamp(t.x+Math.cos(a)*46,26,W-26),y:clamp(t.y+Math.sin(a)*46,70,H-30)};
-      path.push({x1:cur.x,y1:cur.y,x2:end.x,y2:end.y,target:t});
-      cur=end;
-    }
-    if(tier===3){ // 光返し折返：反向再穿過每個目標一次
-      for(let i=targets.length-1;i>=0;i--){
-        const t=targets[i];
+    targets=alive.slice(0,tier===3?8:6);
+    if(targets.length===0){
+      const a=p.face>0?0:Math.PI;
+      path.push({x1:cur.x,y1:cur.y,x2:clamp(cur.x+Math.cos(a)*180,30,W-30),y2:cur.y});
+    }else if(targets.length===1){
+      // 單體目標：繞著它反覆瞬身穿斬（光返し多穿兩刀）
+      const t=targets[0];
+      let a=Math.atan2(t.y-cur.y,t.x-cur.x);
+      const passes=tier===3?6:4;
+      for(let i=0;i<passes;i++){
+        const end={x:clamp(t.x+Math.cos(a)*52,26,W-26),y:clamp(t.y+Math.sin(a)*52,70,H-30)};
+        path.push({x1:cur.x,y1:cur.y,x2:end.x,y2:end.y,targets:[t]});
+        cur=end;a+=2.4; // 換個角度再穿一刀
+      }
+    }else{
+      // 多目標：依序穿過每個目標（穿過身後一小段）
+      for(const t of targets){
         const a=Math.atan2(t.y-cur.y,t.x-cur.x);
         const end={x:clamp(t.x+Math.cos(a)*46,26,W-26),y:clamp(t.y+Math.sin(a)*46,70,H-30)};
-        path.push({x1:cur.x,y1:cur.y,x2:end.x,y2:end.y,target:t});
+        path.push({x1:cur.x,y1:cur.y,x2:end.x,y2:end.y,targets:[t]});
         cur=end;
       }
+      if(tier===3){ // 光返し折返：反向再穿過每個目標一次
+        for(let i=targets.length-1;i>=0;i--){
+          const t=targets[i];
+          const a=Math.atan2(t.y-cur.y,t.x-cur.x);
+          const end={x:clamp(t.x+Math.cos(a)*46,26,W-26),y:clamp(t.y+Math.sin(a)*46,70,H-30)};
+          path.push({x1:cur.x,y1:cur.y,x2:end.x,y2:end.y,targets:[t]});
+          cur=end;
+        }
+      }
     }
-    // 收尾脫離段：順著最後方向再閃 90px，落點遠離敵群
-    const last=path[path.length-1];
-    const la=Math.atan2(last.y2-last.y1,last.x2-last.x1);
-    path.push({x1:last.x2,y1:last.y2,
-      x2:clamp(last.x2+Math.cos(la)*90,26,W-26),
-      y2:clamp(last.y2+Math.sin(la)*90,70,H-30)});
+    if(targets.length>0){
+      // 收尾脫離段：順著最後方向再閃 90px，落點遠離敵群
+      const last=path[path.length-1];
+      const la=Math.atan2(last.y2-last.y1,last.x2-last.x1);
+      path.push({x1:last.x2,y1:last.y2,
+        x2:clamp(last.x2+Math.cos(la)*90,26,W-26),
+        y2:clamp(last.y2+Math.sin(la)*90,70,H-30)});
+    }
   }
-  G.ultSeq={phase:"charge",t:24,path,idx:0,segT:0,targets,dim:0,tier};
+  G.ultSeq={phase:"charge",t:tier===1?14:24,path,idx:0,segT:0,targets,dim:0,tier};
   p.inv=999; // 全程無敵，結束時歸還
   buzz(20);
 }
@@ -489,9 +519,8 @@ function updateUltSeq(){
     p.x=seg.x1+(seg.x2-seg.x1)*k;
     p.y=seg.y1+(seg.y2-seg.y1)*k;
     p.face=seg.x2>=seg.x1?1:-1;
-    if(s.segT===3&&seg.target&&!seg.target.dead){
-      burst(seg.target.x,seg.target.y,"#fff",5,4); // 掠過的火花，傷害還沒發生
-    }
+    if(s.segT===3&&seg.targets)for(const t of seg.targets)
+      if(!t.dead)burst(t.x,t.y,"#fff",5,4); // 掠過的火花，傷害還沒發生
     if(s.segT>=5){
       ultTrails.push({x1:seg.x1,y1:seg.y1,x2:seg.x2,y2:seg.y2,life:40,max:40,
         rgb:s.tier===1?"207,214,221":"255,209,102"}); // 無音之太刀：銀白無光劍痕
@@ -502,20 +531,23 @@ function updateUltSeq(){
     if(--s.t<=0){
       s.phase="strike";
       // 一齊裂開
-      const dmgBase=[0,40,64,52][s.tier]*atkPower(); // 光返し每目標吃兩刀，單刀略降、總傷更高
+      const dmgBase=[0,48,64,52][s.tier]*atkPower(); // 每一刀的基礎傷害
       const col=s.tier===1?"#cfd6dd":"#ffd166";
+      let hits=0;
       for(const seg of s.path){
-        const e=seg.target;
-        if(!e||e.dead)continue;
-        const dmg=dmgBase*rnd(0.95,1.15);
-        e.hp-=dmg;e.flash=10;
-        slashArc(e.x,e.y,rnd(0,6.28),e.r*2.6,col);
-        burst(e.x,e.y,col,18,8);
-        burst(e.x,e.y,"#fff",8,6);
-        dmgNum(e.x,e.y,dmg,true);
-        if(e.hp<=0)killEnemy(e);
+        if(!seg.targets)continue;
+        for(const e of seg.targets){
+          if(!e||e.dead)continue;
+          const dmg=dmgBase*rnd(0.95,1.15);
+          e.hp-=dmg;e.flash=10;hits++;
+          slashArc(e.x,e.y,rnd(0,6.28),e.r*2.6,col);
+          burst(e.x,e.y,col,18,8);
+          burst(e.x,e.y,"#fff",8,6);
+          dmgNum(e.x,e.y,dmg,true);
+          if(e.hp<=0)killEnemy(e);
+        }
       }
-      comboCount+=s.targets.length;comboFade=90;
+      comboCount+=hits;comboFade=90;
       G.flash=10;shake(16);buzz([50,40,80]);
       G.ultSeq=null;s.dim=0;
       p.inv=45; // 收招後較長無敵，避免落地即被圍毆
