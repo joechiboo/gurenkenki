@@ -1,0 +1,560 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+<title>紅蓮劍姬 - 地城試煉</title>
+<style>
+  :root{
+    --ink:#0b0a10; --stone:#1c1826; --stone2:#2a2438;
+    --crimson:#e23b3b; --ember:#ff8c42; --gold:#ffd166; --bone:#e8e3d8;
+  }
+  *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+  html,body{width:100%;height:100%;overflow:hidden;background:var(--ink);
+    font-family:"Courier New",monospace;touch-action:none;user-select:none;-webkit-user-select:none;}
+  #wrap{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;}
+  canvas{background:var(--ink);display:block;image-rendering:pixelated;}
+  /* HUD */
+  #hud{position:fixed;top:env(safe-area-inset-top,8px);left:0;right:0;padding:10px 14px;
+    display:flex;justify-content:space-between;align-items:flex-start;pointer-events:none;z-index:5;}
+  .hpwrap{width:44vw;max-width:260px;}
+  .hpbar{height:14px;border:2px solid var(--bone);background:#000;position:relative;}
+  .hpfill{height:100%;background:linear-gradient(90deg,var(--crimson),var(--ember));
+    width:100%;transition:width .12s steps(6);}
+  .label{color:var(--bone);font-size:11px;letter-spacing:2px;margin-bottom:3px;}
+  #floorTag{color:var(--gold);font-size:13px;letter-spacing:3px;text-align:right;}
+  #comboTag{color:var(--crimson);font-size:20px;font-weight:bold;text-align:right;
+    text-shadow:0 0 8px rgba(226,59,59,.7);opacity:0;transition:opacity .2s;}
+  /* touch controls */
+  .ctl{position:fixed;z-index:6;}
+  #stick{left:16px;bottom:calc(env(safe-area-inset-bottom,0px) + 20px);
+    width:120px;height:120px;border-radius:50%;border:2px solid rgba(232,227,216,.25);
+    background:rgba(255,255,255,.04);}
+  #knob{position:absolute;left:50%;top:50%;width:52px;height:52px;border-radius:50%;
+    background:rgba(232,227,216,.28);transform:translate(-50%,-50%);}
+  .btn{width:76px;height:76px;border-radius:50%;display:flex;align-items:center;justify-content:center;
+    font-size:13px;letter-spacing:2px;color:var(--bone);border:2px solid rgba(232,227,216,.3);
+    background:rgba(255,255,255,.05);}
+  .btn:active{background:rgba(226,59,59,.35);}
+  #btnAtk{right:20px;bottom:calc(env(safe-area-inset-bottom,0px) + 26px);
+    border-color:rgba(226,59,59,.6);}
+  #btnDash{right:104px;bottom:calc(env(safe-area-inset-bottom,0px) + 90px);width:62px;height:62px;font-size:11px;}
+  /* overlay */
+  #overlay{position:fixed;inset:0;background:rgba(11,10,16,.9);z-index:10;
+    display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;
+    color:var(--bone);text-align:center;padding:20px;}
+  #overlay h1{font-size:30px;letter-spacing:8px;color:var(--crimson);
+    text-shadow:0 0 20px rgba(226,59,59,.5);}
+  #overlay .sub{font-size:13px;line-height:1.9;opacity:.85;}
+  #overlay button{margin-top:8px;padding:12px 34px;font-size:15px;letter-spacing:4px;
+    font-family:inherit;background:var(--crimson);color:#fff;border:none;cursor:pointer;}
+  #overlay button:active{transform:scale(.96);}
+  .hidden{display:none!important;}
+</style>
+</head>
+<body>
+<div id="wrap"><canvas id="cv"></canvas></div>
+
+<div id="hud">
+  <div class="hpwrap">
+    <div class="label">劍士 HP</div>
+    <div class="hpbar"><div class="hpfill" id="hpfill"></div></div>
+  </div>
+  <div>
+    <div id="floorTag">地下 1 層</div>
+    <div id="comboTag">0 COMBO</div>
+  </div>
+</div>
+
+<div class="ctl" id="stick"><div id="knob"></div></div>
+<div class="ctl btn" id="btnAtk">斬</div>
+
+<div id="overlay">
+  <h1>紅蓮劍姬</h1>
+  <div class="sub">
+    劍神流劍士的地城試煉<br><br>
+    移動：左搖桿 / WASD・方向鍵<br>
+    攻擊：斬 鍵 或 點畫面（自動朝最近敵人・連按三連斬）<br>
+    衝刺：往任意方向快速滑動 / K・Shift（有無敵幀）<br><br>
+    清光每層的魔物，樓梯就會出現
+  </div>
+  <button id="startBtn">開始試煉</button>
+</div>
+
+<script>
+"use strict";
+// ============ 基礎設定 ============
+const cv=document.getElementById("cv"),cx=cv.getContext("2d");
+let W=960,H=540,scale=1;
+function resize(){
+  const vw=innerWidth,vh=innerHeight,ar=16/9;
+  let w=vw,h=vw/ar; if(h>vh){h=vh;w=vh*ar;}
+  cv.width=W; cv.height=H;
+  cv.style.width=w+"px"; cv.style.height=h+"px";
+}
+addEventListener("resize",resize); resize();
+
+// ============ 工具 ============
+const rnd=(a,b)=>a+Math.random()*(b-a);
+const clamp=(v,a,b)=>v<a?a:v>b?b:v;
+const dist2=(a,b)=>{const dx=a.x-b.x,dy=a.y-b.y;return dx*dx+dy*dy;};
+
+// ============ 輸入 ============
+const keys={};
+addEventListener("keydown",e=>{keys[e.code]=true;
+  if(["Space","ArrowUp","ArrowDown","ArrowLeft","ArrowRight"].includes(e.code))e.preventDefault();
+  if(e.code==="Space"||e.code==="KeyJ")queueAttack();
+  if(e.code==="ShiftLeft"||e.code==="ShiftRight"||e.code==="KeyK")queueDash();
+});
+addEventListener("keyup",e=>keys[e.code]=false);
+
+// 虛擬搖桿
+const stick=document.getElementById("stick"),knob=document.getElementById("knob");
+let stickVec={x:0,y:0},stickId=null;
+function stickMove(t){
+  const r=stick.getBoundingClientRect(),cxp=r.left+r.width/2,cyp=r.top+r.height/2;
+  let dx=t.clientX-cxp,dy=t.clientY-cyp;
+  const m=Math.hypot(dx,dy),max=r.width/2;
+  if(m>max){dx=dx/m*max;dy=dy/m*max;}
+  knob.style.transform=`translate(calc(-50% + ${dx}px),calc(-50% + ${dy}px))`;
+  stickVec.x=dx/max;stickVec.y=dy/max;
+}
+stick.addEventListener("touchstart",e=>{e.preventDefault();stickId=e.changedTouches[0].identifier;stickMove(e.changedTouches[0]);});
+stick.addEventListener("touchmove",e=>{e.preventDefault();for(const t of e.changedTouches)if(t.identifier===stickId)stickMove(t);});
+const stickEnd=e=>{for(const t of e.changedTouches)if(t.identifier===stickId){stickId=null;stickVec={x:0,y:0};knob.style.transform="translate(-50%,-50%)";}};
+stick.addEventListener("touchend",stickEnd);stick.addEventListener("touchcancel",stickEnd);
+document.getElementById("btnAtk").addEventListener("touchstart",e=>{e.preventDefault();queueAttack();});
+document.getElementById("btnAtk").addEventListener("mousedown",()=>queueAttack());
+
+// ============ 遊戲狀態 ============
+const G={running:false,floor:1,hitstop:0,shake:0,shakeX:0,shakeY:0,time:0,clearTimer:0};
+const player={
+  x:W/2,y:H/2,r:14,hp:100,maxhp:100,face:1,
+  vx:0,vy:0,speed:3.4,
+  atkQueue:false,combo:0,comboWindow:0,atkTimer:0,atkCd:0,atkAng:0,
+  dashQueue:false,dashDir:null,dashTimer:0,dashCd:0,inv:0,
+  hurtFlash:0,trail:[]
+};
+let enemies=[],particles=[],dmgNums=[],slashes=[],stairs=null;
+let comboCount=0,comboFade=0;
+
+function queueAttack(){if(G.running)player.atkQueue=true;}
+function queueDash(dir){if(G.running){player.dashQueue=true;player.dashDir=dir||null;}}
+
+// 滑動任意處＝朝滑動方向衝刺（手機單手操作）
+let swipe=null;
+cv.addEventListener("touchstart",e=>{
+  const t=e.changedTouches[0];
+  swipe={id:t.identifier,x:t.clientX,y:t.clientY,t:performance.now()};
+},{passive:true});
+cv.addEventListener("touchend",e=>{
+  if(!swipe)return;
+  for(const t of e.changedTouches){
+    if(t.identifier!==swipe.id)continue;
+    const dx=t.clientX-swipe.x,dy=t.clientY-swipe.y;
+    const d=Math.hypot(dx,dy),dt=performance.now()-swipe.t;
+    if(d>40&&dt<260)queueDash({x:dx/d,y:dy/d});
+    else if(d<12&&dt<220)queueAttack(); // 點一下畫面也能攻擊
+    swipe=null;
+  }
+},{passive:true});
+function buzz(ms){if(navigator.vibrate)try{navigator.vibrate(ms);}catch(e){}}
+
+// ============ 敵人 ============
+const E_TYPES={
+  slime:{r:16,hp:26,speed:0.9,dmg:8,color:"#4caf7d",score:1},
+  skel:{r:15,hp:44,speed:1.6,dmg:12,color:"#c9c2b0",score:2},
+  bat:{r:11,hp:18,speed:2.6,dmg:6,color:"#8b5fbf",score:1},
+  brute:{r:24,hp:120,speed:1.1,dmg:20,color:"#b0413e",score:5}
+};
+function spawnFloor(){
+  enemies=[];stairs=null;G.clearTimer=0;
+  const f=G.floor,n=Math.min(4+f,12);
+  const pool=["slime","slime","bat"];
+  if(f>=2)pool.push("skel","skel");
+  if(f>=3)pool.push("bat","skel");
+  for(let i=0;i<n;i++){
+    const type=pool[Math.floor(rnd(0,pool.length))];
+    spawnEnemy(type,f);
+  }
+  if(f%3===0)spawnEnemy("brute",f); // 每 3 層一隻精英
+}
+function spawnEnemy(type,f){
+  const t=E_TYPES[type];
+  let x,y;
+  do{x=rnd(60,W-60);y=rnd(90,H-70);}while(Math.hypot(x-player.x,y-player.y)<170);
+  enemies.push({type,x,y,r:t.r,
+    hp:t.hp*(1+(f-1)*0.22),maxhp:t.hp*(1+(f-1)*0.22),
+    speed:t.speed*(1+(f-1)*0.05),dmg:t.dmg,color:t.color,
+    kbx:0,kby:0,flash:0,wobble:rnd(0,6.28),atkCd:0,dead:0});
+}
+
+// ============ 打擊感核心 ============
+function hitstop(frames){G.hitstop=Math.max(G.hitstop,frames);}
+function shake(power){G.shake=Math.max(G.shake,power);}
+function burst(x,y,color,n,pow){
+  for(let i=0;i<n;i++){
+    const a=rnd(0,Math.PI*2),s=rnd(1,pow);
+    particles.push({x,y,vx:Math.cos(a)*s,vy:Math.sin(a)*s,
+      life:rnd(14,30),max:30,color,size:rnd(2,5)});
+  }
+}
+function dmgNum(x,y,val,crit){
+  dmgNums.push({x:x+rnd(-8,8),y:y-10,vy:-1.8,life:38,val:Math.round(val),crit});
+}
+function slashArc(x,y,ang,size,color){
+  slashes.push({x,y,ang,size,life:9,max:9,color});
+}
+
+// ============ 玩家更新 ============
+function updatePlayer(){
+  const p=player;
+  // 輸入向量
+  let ix=stickVec.x,iy=stickVec.y;
+  if(keys.KeyA||keys.ArrowLeft)ix-=1;
+  if(keys.KeyD||keys.ArrowRight)ix+=1;
+  if(keys.KeyW||keys.ArrowUp)iy-=1;
+  if(keys.KeyS||keys.ArrowDown)iy+=1;
+  const im=Math.hypot(ix,iy);
+  if(im>1){ix/=im;iy/=im;}
+  if(Math.abs(ix)>0.15)p.face=ix>0?1:-1;
+
+  // 衝刺
+  if(p.dashQueue&&p.dashCd<=0&&p.dashTimer<=0){
+    p.dashTimer=10;p.dashCd=32;p.inv=Math.max(p.inv,12);
+    const m=p.dashDir?p.dashDir:(im>0.2?{x:ix,y:iy}:{x:p.face,y:0});
+    p.vx=m.x*11;p.vy=m.y*11;
+    if(Math.abs(m.x)>0.15)p.face=m.x>0?1:-1;
+    burst(p.x,p.y,"#e8e3d8",6,3);
+  }
+  p.dashQueue=false;p.dashDir=null;
+  if(p.dashCd>0)p.dashCd--;
+  if(p.inv>0)p.inv--;
+
+  if(p.dashTimer>0){
+    p.dashTimer--;
+    p.trail.push({x:p.x,y:p.y,life:10});
+  }else{
+    // 一般移動（攻擊中減速，保留操作感）
+    const spd=p.atkTimer>0?p.speed*0.35:p.speed;
+    p.vx=ix*spd;p.vy=iy*spd;
+  }
+  p.x=clamp(p.x+p.vx,20,W-20);
+  p.y=clamp(p.y+p.vy,64,H-24);
+  p.trail=p.trail.filter(t=>--t.life>0);
+
+  // 攻擊：三連斬
+  if(p.atkCd>0)p.atkCd--;
+  if(p.comboWindow>0)p.comboWindow--; else p.combo=0;
+  if(p.atkTimer>0)p.atkTimer--;
+  if(p.atkQueue&&p.atkCd<=0){
+    p.atkQueue=false;
+    p.combo=(p.combo%3)+1;
+    p.comboWindow=34;
+    const third=p.combo===3;
+    p.atkTimer=third?14:9;
+    p.atkCd=third?20:11;
+    doSlash(third);
+  }else p.atkQueue=false;
+  if(p.hurtFlash>0)p.hurtFlash--;
+}
+
+function doSlash(third){
+  const p=player;
+  const range=third?86:64,arc=third?2.6:2.0;
+  // 自動索敵：260px 內最近的敵人
+  let target=null,best=260*260;
+  for(const e of enemies){
+    if(e.dead)continue;
+    const d2=dist2(p,e);
+    if(d2<best){best=d2;target=e;}
+  }
+  const ang=target?Math.atan2(target.y-p.y,target.x-p.x):(p.face>0?0:Math.PI);
+  if(Math.abs(Math.cos(ang))>0.2)p.face=Math.cos(ang)>0?1:-1;
+  p.atkAng=ang;
+  const baseDmg=third?22:11;
+  slashArc(p.x+Math.cos(ang)*18,p.y+Math.sin(ang)*18,ang,range,third?"#ffd166":"#ff8c42");
+  if(third){shake(7);}
+  let hitAny=false;
+  for(const e of enemies){
+    if(e.dead)continue;
+    const dx=e.x-p.x,dy=e.y-p.y,d=Math.hypot(dx,dy);
+    if(d<range+e.r){
+      const ea=Math.atan2(dy,dx);
+      let diff=Math.abs(((ea-ang)+Math.PI*3)%(Math.PI*2)-Math.PI);
+      if(diff<arc/2||d<40){
+        hitAny=true;
+        const crit=Math.random()<0.15;
+        const dmg=baseDmg*(crit?1.8:1)*rnd(0.9,1.1);
+        e.hp-=dmg;e.flash=6;
+        const kb=third?9:4.5;
+        e.kbx+=Math.cos(ea)*kb;e.kby+=Math.sin(ea)*kb;
+        burst(e.x,e.y,crit?"#ffd166":"#ff8c42",crit?14:8,crit?6:4);
+        dmgNum(e.x,e.y,dmg,crit);
+        comboCount++;comboFade=90;
+        if(e.hp<=0)killEnemy(e);
+      }
+    }
+  }
+  if(hitAny){hitstop(third?7:3);shake(third?8:3);buzz(third?30:12);}
+}
+
+function killEnemy(e){
+  e.dead=1;
+  burst(e.x,e.y,e.color,18,7);
+  burst(e.x,e.y,"#fff",6,5);
+  hitstop(5);shake(6);
+  player.hp=Math.min(player.maxhp,player.hp+1.5); // 擊殺微回血
+}
+
+// ============ 敵人更新 ============
+function updateEnemies(){
+  const p=player;
+  for(const e of enemies){
+    if(e.dead)continue;
+    e.wobble+=0.12;
+    if(e.flash>0)e.flash--;
+    // 擊退慣性
+    e.x+=e.kbx;e.y+=e.kby;e.kbx*=0.82;e.kby*=0.82;
+    // 追蹤
+    const dx=p.x-e.x,dy=p.y-e.y,d=Math.hypot(dx,dy)||1;
+    let sp=e.speed;
+    if(e.type==="bat")sp*=1+Math.sin(e.wobble*2)*0.5;
+    if(d>e.r+p.r-4){e.x+=dx/d*sp;e.y+=dy/d*sp;}
+    e.x=clamp(e.x,20,W-20);e.y=clamp(e.y,64,H-24);
+    // 接觸傷害
+    if(e.atkCd>0)e.atkCd--;
+    if(d<e.r+p.r&&e.atkCd<=0&&p.inv<=0){
+      e.atkCd=40;
+      p.hp-=e.dmg;p.hurtFlash=10;p.inv=26;
+      const ka=Math.atan2(p.y-e.y,p.x-e.x);
+      p.vx+=Math.cos(ka)*6;p.vy+=Math.sin(ka)*6;
+      burst(p.x,p.y,"#e23b3b",10,5);
+      hitstop(4);shake(9);buzz(60);
+      if(p.hp<=0)gameOver();
+    }
+  }
+  enemies=enemies.filter(e=>!e.dead);
+  // 清層 → 樓梯出現
+  if(enemies.length===0&&!stairs){
+    G.clearTimer++;
+    if(G.clearTimer===30){
+      stairs={x:W/2,y:110,r:26,pulse:0};
+      burst(stairs.x,stairs.y,"#ffd166",24,6);
+    }
+  }
+  if(stairs){
+    stairs.pulse+=0.08;
+    if(dist2(player,stairs)<(stairs.r+player.r)**2)nextFloor();
+  }
+}
+function nextFloor(){
+  G.floor++;
+  document.getElementById("floorTag").textContent=`地下 ${G.floor} 層`;
+  player.x=W/2;player.y=H-90;player.inv=40;
+  burst(player.x,player.y,"#ffd166",16,5);
+  spawnFloor();
+}
+
+// ============ 繪製 ============
+function drawFloorBg(){
+  cx.fillStyle="#141019";cx.fillRect(0,0,W,H);
+  // 石板紋
+  cx.strokeStyle="rgba(255,255,255,0.035)";cx.lineWidth=1;
+  const gs=48;
+  for(let x=0;x<=W;x+=gs){cx.beginPath();cx.moveTo(x,56);cx.lineTo(x,H);cx.stroke();}
+  for(let y=56;y<=H;y+=gs){cx.beginPath();cx.moveTo(0,y);cx.lineTo(W,y);cx.stroke();}
+  // 火把光暈
+  for(const tx of [80,W/2,W-80]){
+    const g=cx.createRadialGradient(tx,70,4,tx,70,150);
+    g.addColorStop(0,"rgba(255,140,66,0.14)");g.addColorStop(1,"rgba(0,0,0,0)");
+    cx.fillStyle=g;cx.fillRect(tx-150,0,300,240);
+    cx.fillStyle="#ff8c42";
+    const fl=2+Math.sin(G.time*0.3+tx)*1.5;
+    cx.fillRect(tx-2,60-fl,4,6+fl);
+    cx.fillStyle="#5a4a3a";cx.fillRect(tx-2,66,4,14);
+  }
+  // 上牆
+  cx.fillStyle="#0b0a10";cx.fillRect(0,0,W,52);
+  cx.fillStyle="#241e30";cx.fillRect(0,48,W,8);
+}
+function drawStairs(){
+  if(!stairs)return;
+  const s=stairs,glow=6+Math.sin(s.pulse)*4;
+  const g=cx.createRadialGradient(s.x,s.y,2,s.x,s.y,s.r+glow+14);
+  g.addColorStop(0,"rgba(255,209,102,0.6)");g.addColorStop(1,"rgba(255,209,102,0)");
+  cx.fillStyle=g;cx.beginPath();cx.arc(s.x,s.y,s.r+glow+14,0,7);cx.fill();
+  cx.fillStyle="#0b0a10";cx.beginPath();cx.arc(s.x,s.y,s.r,0,7);cx.fill();
+  cx.strokeStyle="#ffd166";cx.lineWidth=3;
+  cx.beginPath();cx.arc(s.x,s.y,s.r,0,7);cx.stroke();
+  // 向下箭頭
+  cx.fillStyle="#ffd166";cx.beginPath();
+  cx.moveTo(s.x,s.y+9);cx.lineTo(s.x-8,s.y-4);cx.lineTo(s.x+8,s.y-4);cx.closePath();cx.fill();
+}
+function drawPlayer(){
+  const p=player;
+  // 殘影
+  for(const t of p.trail){
+    cx.globalAlpha=t.life/10*0.35;
+    cx.fillStyle="#e23b3b";
+    cx.beginPath();cx.arc(t.x,t.y,p.r,0,7);cx.fill();
+  }
+  cx.globalAlpha=1;
+  if(p.inv>0&&p.dashTimer<=0&&Math.floor(G.time/3)%2===0)cx.globalAlpha=0.45;
+  const bx=p.x,by=p.y;
+  // 影子
+  cx.fillStyle="rgba(0,0,0,0.4)";
+  cx.beginPath();cx.ellipse(bx,by+14,12,4,0,0,7);cx.fill();
+  // 身體
+  cx.fillStyle=p.hurtFlash>0?"#ffffff":"#3a2f4a";
+  cx.fillRect(bx-7,by-4,14,16);
+  // 頭 + 長紅髮（原創劍士造型）
+  cx.fillStyle=p.hurtFlash>0?"#ffffff":"#f2d0b8";
+  cx.fillRect(bx-6,by-16,12,12);
+  cx.fillStyle=p.hurtFlash>0?"#ffdddd":"#d63a3a";
+  cx.fillRect(bx-8,by-19,16,6);
+  cx.fillRect(bx-8-(p.face>0?4:-2)+(p.face>0?0:-6)*0+(p.face>0?-2:2),by-16,4,20); // 側邊髮束
+  cx.fillRect(bx+(p.face>0?-11:7),by-14,4,18);
+  // 眼睛
+  cx.fillStyle="#1c1826";
+  cx.fillRect(bx+(p.face>0?1:-4),by-12,3,3);
+  // 劍
+  const swing=p.atkTimer>0;
+  cx.save();cx.translate(bx,by);
+  cx.rotate(swing?p.atkAng+(0.7-p.atkTimer*0.15):(p.face>0?-0.5:Math.PI+0.5));
+  cx.fillStyle="#cfd6dd";cx.fillRect(10,-2,26,4);
+  cx.fillStyle="#8a5a2b";cx.fillRect(4,-3,7,6);
+  cx.restore();
+  cx.globalAlpha=1;
+}
+function drawEnemies(){
+  for(const e of enemies){
+    cx.fillStyle="rgba(0,0,0,0.35)";
+    cx.beginPath();cx.ellipse(e.x,e.y+e.r*0.85,e.r*0.8,e.r*0.28,0,0,7);cx.fill();
+    const bob=Math.sin(e.wobble)*3;
+    cx.fillStyle=e.flash>0?"#ffffff":e.color;
+    if(e.type==="slime"){
+      cx.beginPath();cx.ellipse(e.x,e.y+bob*0.5,e.r,e.r*0.8,0,0,7);cx.fill();
+      cx.fillStyle="#1c1826";cx.fillRect(e.x-6,e.y-4+bob*0.5,3,4);cx.fillRect(e.x+3,e.y-4+bob*0.5,3,4);
+    }else if(e.type==="bat"){
+      cx.beginPath();cx.arc(e.x,e.y+bob,e.r,0,7);cx.fill();
+      const w=Math.sin(e.wobble*3)*8;
+      cx.beginPath();cx.moveTo(e.x-e.r,e.y+bob);cx.lineTo(e.x-e.r-10,e.y+bob-6+w);cx.lineTo(e.x-e.r-4,e.y+bob+4);cx.closePath();cx.fill();
+      cx.beginPath();cx.moveTo(e.x+e.r,e.y+bob);cx.lineTo(e.x+e.r+10,e.y+bob-6+w);cx.lineTo(e.x+e.r+4,e.y+bob+4);cx.closePath();cx.fill();
+      cx.fillStyle="#e23b3b";cx.fillRect(e.x-4,e.y-3+bob,2,2);cx.fillRect(e.x+2,e.y-3+bob,2,2);
+    }else{ // skel / brute
+      cx.fillRect(e.x-e.r*0.7,e.y-e.r,e.r*1.4,e.r*1.8);
+      cx.fillStyle="#1c1826";
+      cx.fillRect(e.x-e.r*0.4,e.y-e.r*0.6,e.r*0.25,e.r*0.3);
+      cx.fillRect(e.x+e.r*0.15,e.y-e.r*0.6,e.r*0.25,e.r*0.3);
+      if(e.type==="brute"){
+        cx.strokeStyle="#ffd166";cx.lineWidth=2;
+        cx.strokeRect(e.x-e.r*0.7,e.y-e.r,e.r*1.4,e.r*1.8);
+      }
+    }
+    // 血條
+    if(e.hp<e.maxhp){
+      const w=e.r*2;
+      cx.fillStyle="#000";cx.fillRect(e.x-e.r,e.y-e.r-10,w,4);
+      cx.fillStyle="#e23b3b";cx.fillRect(e.x-e.r,e.y-e.r-10,w*clamp(e.hp/e.maxhp,0,1),4);
+    }
+  }
+}
+function drawFx(){
+  // 劍氣弧
+  for(const s of slashes){
+    const t=s.life/s.max;
+    cx.save();cx.translate(s.x,s.y);cx.rotate(s.ang);
+    cx.strokeStyle=s.color;cx.globalAlpha=t;cx.lineWidth=5*t+2;
+    cx.beginPath();cx.arc(0,0,s.size*(1.2-t*0.4),-1.1,1.1);cx.stroke();
+    cx.lineWidth=2;cx.globalAlpha=t*0.6;
+    cx.beginPath();cx.arc(0,0,s.size*(1.2-t*0.4)*0.7,-0.9,0.9);cx.stroke();
+    cx.restore();
+  }
+  cx.globalAlpha=1;
+  // 粒子
+  for(const p of particles){
+    cx.globalAlpha=p.life/p.max;
+    cx.fillStyle=p.color;
+    cx.fillRect(p.x-p.size/2,p.y-p.size/2,p.size,p.size);
+  }
+  cx.globalAlpha=1;
+  // 傷害數字
+  for(const d of dmgNums){
+    cx.globalAlpha=clamp(d.life/20,0,1);
+    cx.font=(d.crit?"bold 22px":"bold 15px")+" 'Courier New',monospace";
+    cx.fillStyle=d.crit?"#ffd166":"#fff";
+    cx.strokeStyle="#000";cx.lineWidth=3;
+    cx.strokeText(d.val,d.x,d.y);cx.fillText(d.val,d.x,d.y);
+  }
+  cx.globalAlpha=1;
+}
+function updateFx(){
+  for(const p of particles){p.x+=p.vx;p.y+=p.vy;p.vx*=0.92;p.vy*=0.92;p.vy+=0.08;p.life--;}
+  particles=particles.filter(p=>p.life>0);
+  for(const d of dmgNums){d.y+=d.vy;d.vy+=0.06;d.life--;}
+  dmgNums=dmgNums.filter(d=>d.life>0);
+  for(const s of slashes)s.life--;
+  slashes=slashes.filter(s=>s.life>0);
+  if(comboFade>0){comboFade--;if(comboFade===0)comboCount=0;}
+  const tag=document.getElementById("comboTag");
+  tag.style.opacity=comboCount>1?1:0;
+  tag.textContent=comboCount+" COMBO";
+}
+
+// ============ 主迴圈 ============
+function loop(){
+  requestAnimationFrame(loop);
+  if(!G.running)return;
+  G.time++;
+  if(G.hitstop>0){G.hitstop--;render();return;} // 凍幀：暫停邏輯只渲染
+  updatePlayer();
+  updateEnemies();
+  updateFx();
+  if(G.shake>0){
+    G.shake*=0.85;
+    G.shakeX=rnd(-G.shake,G.shake);G.shakeY=rnd(-G.shake,G.shake);
+    if(G.shake<0.4){G.shake=0;G.shakeX=0;G.shakeY=0;}
+  }
+  document.getElementById("hpfill").style.width=clamp(player.hp/player.maxhp*100,0,100)+"%";
+  render();
+}
+function render(){
+  cx.save();
+  cx.translate(G.shakeX,G.shakeY);
+  drawFloorBg();
+  drawStairs();
+  drawEnemies();
+  drawPlayer();
+  drawFx();
+  cx.restore();
+  // 受傷紅暈
+  if(player.hurtFlash>0){
+    cx.fillStyle=`rgba(226,59,59,${player.hurtFlash/10*0.25})`;
+    cx.fillRect(0,0,W,H);
+  }
+}
+
+// ============ 開始 / 結束 ============
+const overlay=document.getElementById("overlay");
+document.getElementById("startBtn").addEventListener("click",startGame);
+function startGame(){
+  overlay.classList.add("hidden");
+  G.running=true;G.floor=1;
+  player.hp=player.maxhp;player.x=W/2;player.y=H-90;player.inv=30;
+  document.getElementById("floorTag").textContent="地下 1 層";
+  enemies=[];particles=[];dmgNums=[];slashes=[];stairs=null;comboCount=0;
+  spawnFloor();
+}
+function gameOver(){
+  G.running=false;
+  overlay.classList.remove("hidden");
+  overlay.querySelector("h1").textContent="試煉中斷";
+  overlay.querySelector(".sub").innerHTML=
+    `你抵達了 <span style="color:var(--gold)">地下 ${G.floor} 層</span><br><br>劍士不會止步於此`;
+  document.getElementById("startBtn").textContent="再次挑戰";
+}
+loop();
+</script>
+</body>
+</html>
