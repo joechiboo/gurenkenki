@@ -133,10 +133,12 @@
   <div id="ovEyebrow">劍神流・地城試煉</div>
   <h1 id="ovTitle">紅蓮劍姬</h1>
   <div class="sub" id="ovSub">紅髮的劍士孤身立於地城之口<br>斬開黑暗，直至最深層</div>
+  <div class="sub" id="recordTag" style="opacity:.65;color:var(--gold)"></div>
   <div id="btnRow">
     <button id="helpBtn" class="ghost">操作說明</button>
     <button id="startBtn">開始試煉</button>
   </div>
+  <button id="wipeBtn" class="ghost" style="font-size:11px;padding:7px 16px;letter-spacing:2px;opacity:.55;position:relative;z-index:1">清除紀錄</button>
 </div>
 
 <div id="helpPanel" class="hidden">
@@ -396,6 +398,7 @@ function updatePlayer(){
       else{p.armorTier++;p.maxhp+=12;p.hp=Math.min(p.maxhp,p.hp+20);dmgNum(p.x,p.y-16,0,true,"甲 +"+p.armorTier);}
       $("equipTag").textContent=`劍 +${p.swordTier}・甲 +${p.armorTier}`;
       burst(p.x,p.y,"#ffd166",14,5);buzz(30);
+      saveGame();
     }
   }
   drops=drops.filter(d=>!d.taken);
@@ -424,6 +427,7 @@ function gainExp(v){
     if(p.lvl===10)dmgNum(p.x,p.y-36,0,true,"奧義進化・光之太刀");
     if(p.lvl===15)dmgNum(p.x,p.y-36,0,true,"奧義極致・光返し");
     burst(p.x,p.y,"#7fd0ff",20,6);shake(4);buzz(40);
+    saveGame();
   }
 }
 
@@ -914,6 +918,8 @@ function hurtPlayer(rawDmg,src){
 }
 function nextFloor(){
   G.floor++;
+  G.bestFloor=Math.max(G.bestFloor||0,G.floor);
+  saveGame();
   $("floorTag").textContent=(G.floor%5===0?"⚔ ":"")+`地下 ${G.floor} 層`;
   player.x=W/2;player.y=H-90;player.inv=40;
   orbs=[];drops=[];
@@ -1397,6 +1403,42 @@ function render(){
 
 // ============ 開始 / 結束 ============
 const overlay=$("overlay");
+// ============ 本地存檔（localStorage）：等級與裝備關頁不失 ============
+const SAVE_KEY="gurenkenki_save_v1";
+function saveGame(){
+  try{
+    localStorage.setItem(SAVE_KEY,JSON.stringify({
+      lvl:player.lvl,exp:player.exp,expNext:player.expNext,atkMul:player.atkMul,
+      maxhp:player.maxhp,swordTier:player.swordTier,armorTier:player.armorTier,
+      bestFloor:G.bestFloor||0
+    }));
+  }catch(e){} // 私密模式等情況下靜默失敗，不影響遊戲
+}
+function loadGame(){
+  try{
+    const d=JSON.parse(localStorage.getItem(SAVE_KEY));
+    if(!d)return;
+    player.lvl=d.lvl||1;player.exp=d.exp||0;player.expNext=d.expNext||30;
+    player.atkMul=d.atkMul||1;player.maxhp=d.maxhp||100;player.hp=player.maxhp;
+    player.swordTier=d.swordTier||0;player.armorTier=d.armorTier||0;
+    G.bestFloor=d.bestFloor||0;
+  }catch(e){}
+}
+function updateRecordTag(){
+  $("recordTag").innerHTML=G.bestFloor>0
+    ?`最深紀錄：地下 ${G.bestFloor} 層・Lv ${player.lvl}・劍 +${player.swordTier} 甲 +${player.armorTier}`:"";
+}
+loadGame();updateRecordTag();
+let wipeArm=0;
+$("wipeBtn").addEventListener("click",()=>{
+  if(!wipeArm){
+    wipeArm=1;$("wipeBtn").textContent="確定清除？";
+    setTimeout(()=>{wipeArm=0;$("wipeBtn").textContent="清除紀錄";},2500);
+  }else{
+    try{localStorage.removeItem(SAVE_KEY);}catch(e){}
+    location.reload();
+  }
+});
 // ============ 首頁立繪（像素風，動態） ============
 const heroC=$("heroCv"),hcx=heroC.getContext("2d");
 function drawHero(t){
@@ -1594,6 +1636,7 @@ function startGame(){
 }
 function gameOver(){
   G.running=false;
+  saveGame();updateRecordTag();
   overlay.classList.remove("hidden");
   $("ovEyebrow").textContent="試煉中斷";
   $("ovTitle").textContent="紅蓮劍姬";
