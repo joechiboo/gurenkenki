@@ -443,9 +443,11 @@ function updatePlayer(){
   // 吸收經驗珠
   for(const o of orbs){
     const d2=dist2(p,o);
-    if(d2<110*110){
+    o.age=(o.age||0)+1;
+    if(d2<110*110||o.age>180){ // 靠近吸取；落地 3 秒沒吃改為全場飛向玩家
       const d=Math.sqrt(d2)||1;
-      o.vx+=(p.x-o.x)/d*0.9;o.vy+=(p.y-o.y)/d*0.9;
+      const pull=o.age>180?1.7:0.9;
+      o.vx+=(p.x-o.x)/d*pull;o.vy+=(p.y-o.y)/d*pull;
     }
     o.x+=o.vx;o.y+=o.vy;o.vx*=0.93;o.vy*=0.93;
     if(d2<20*20){o.taken=1;gainExp(o.val);}
