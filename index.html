@@ -468,6 +468,7 @@ function gainExp(v){
     burst(p.x,p.y,"#7fd0ff",20,6);shake(4);buzz(40);
     saveGame();
   }
+  if(G.time-(G.lastSave||0)>180){G.lastSave=G.time;saveGame();} // 零散經驗每 3 秒節流存檔
 }
 
 function nearestEnemy(maxD){
@@ -990,6 +991,7 @@ function hurtPlayer(rawDmg,src){
 }
 function nextFloor(){
   G.floor++;
+  G.runFloor=G.floor; // 記住進行中的樓層，重新整理可續戰
   G.bestFloor=Math.max(G.bestFloor||0,G.floor);
   saveGame();
   $("floorTag").textContent=diffPrefix()+(G.floor%5===0?"⚔ ":"")+`地下 ${G.floor} 層`;
@@ -1505,7 +1507,8 @@ function saveGame(){
     localStorage.setItem(SAVE_KEY,JSON.stringify({
       lvl:player.lvl,exp:player.exp,expNext:player.expNext,atkMul:player.atkMul,
       maxhp:player.maxhp,swordTier:player.swordTier,armorTier:player.armorTier,
-      bestFloor:G.bestFloor||0,unlockedDiff:G.unlockedDiff||0,diffSel:G.diff||0
+      bestFloor:G.bestFloor||0,unlockedDiff:G.unlockedDiff||0,diffSel:G.diff||0,
+      runFloor:G.runFloor||0
     }));
   }catch(e){} // 私密模式等情況下靜默失敗，不影響遊戲
 }
@@ -1519,7 +1522,11 @@ function loadGame(){
     G.bestFloor=d.bestFloor||0;
     G.unlockedDiff=d.unlockedDiff||0;
     G.diff=Math.min(d.diffSel||0,G.unlockedDiff);
+    G.runFloor=d.runFloor||0;
   }catch(e){}
+}
+function updateStartBtn(){
+  $("startBtn").textContent=G.runFloor>=2?`繼續試煉・地下 ${G.runFloor} 層`:"開始試煉";
 }
 function updateDiffRow(){
   document.querySelectorAll(".diffBtn").forEach(b=>{
@@ -1532,13 +1539,14 @@ function updateDiffRow(){
 document.querySelectorAll(".diffBtn").forEach(b=>b.addEventListener("click",()=>{
   const d=+b.dataset.d;
   if(d>G.unlockedDiff)return; // 未解鎖
+  if(G.diff!==d){G.runFloor=0;updateStartBtn();} // 換難度重新從 1 層開始
   G.diff=d;updateDiffRow();saveGame();
 }));
 function updateRecordTag(){
   $("recordTag").innerHTML=G.bestFloor>0
     ?`最深紀錄：地下 ${G.bestFloor} 層・Lv ${player.lvl}・劍 +${player.swordTier} 甲 +${player.armorTier}`:"";
 }
-loadGame();updateRecordTag();updateDiffRow();
+loadGame();updateRecordTag();updateDiffRow();updateStartBtn();
 let wipeArm=0;
 $("wipeBtn").addEventListener("click",()=>{
   if(!wipeArm){
@@ -1733,10 +1741,11 @@ $("helpBtn").addEventListener("click",()=>$("helpPanel").classList.remove("hidde
 $("helpClose").addEventListener("click",()=>$("helpPanel").classList.add("hidden"));
 function startGame(){
   overlay.classList.add("hidden");
-  G.running=true;G.floor=1;G.flash=0;
+  G.running=true;G.flash=0;
+  G.floor=G.runFloor>=2?G.runFloor:1; // 有進行中的紀錄就從該樓層續戰
   // 死亡不掉等級也不掉裝備：保留 lvl/exp/攻擊/血量上限/劍甲強化，只重置位置與狀態
   Object.assign(player,{hp:player.maxhp,x:W/2,y:H-90,inv:30,ultCd:0,combo:0});
-  $("floorTag").textContent=diffPrefix()+"地下 1 層";
+  $("floorTag").textContent=diffPrefix()+(G.floor%5===0?"⚔ ":"")+`地下 ${G.floor} 層`;
   $("lvTag").textContent=player.lvl;
   $("equipTag").textContent=`劍 +${player.swordTier}・甲 +${player.armorTier}`;
   enemies=[];particles=[];dmgNums=[];slashes=[];orbs=[];drops=[];bullets=[];hazards=[];
@@ -1746,6 +1755,7 @@ function startGame(){
 }
 function gameClear(){ // 打穿 30 層：返回首頁並解鎖下一難度
   G.running=false;
+  G.runFloor=0;updateStartBtn();
   let unlockMsg="";
   if(G.diff<2&&G.unlockedDiff<G.diff+1){
     G.unlockedDiff=G.diff+1;
@@ -1761,6 +1771,7 @@ function gameClear(){ // 打穿 30 層：返回首頁並解鎖下一難度
 }
 function gameOver(){
   G.running=false;
+  G.runFloor=0; // 死亡：下次從地下 1 層重新出發
   saveGame();updateRecordTag();
   overlay.classList.remove("hidden");
   $("ovEyebrow").textContent="試煉中斷";
