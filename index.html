@@ -38,15 +38,18 @@
   .btn:active{background:rgba(226,59,59,.35);}
   #btnAtk{width:78px;height:78px;font-size:14px;right:20px;
     bottom:calc(env(safe-area-inset-bottom,0px) + 26px);border-color:rgba(226,59,59,.6);}
-  #btnUlt{width:62px;height:62px;font-size:11px;right:106px;
-    bottom:calc(env(safe-area-inset-bottom,0px) + 92px);border-color:rgba(255,209,102,.7);
-    color:var(--gold);position:fixed;overflow:hidden;transition:border-color .2s,color .2s;}
-  #btnUlt.cd{border-color:rgba(232,227,216,.35);color:rgba(232,227,216,.75);}
-  #btnUlt.cd #ultLabel{font-size:18px;font-weight:bold;}
-  #btnUlt.lock{border-color:rgba(255,209,102,.5);color:var(--gold);}
-  #btnUlt.lock #ultLabel{font-size:12px;line-height:1.35;font-weight:bold;}
-  #ultCdMask{position:absolute;inset:0;border-radius:50%;pointer-events:none;}
-  #ultLabel{position:relative;z-index:1;}
+  .ubtn{width:56px;height:56px;font-size:10px;position:fixed;overflow:hidden;
+    color:var(--gold);border-color:rgba(255,209,102,.7)!important;
+    transition:border-color .2s,color .2s;z-index:6;}
+  #btnU1{right:104px;bottom:calc(env(safe-area-inset-bottom,0px) + 96px);}
+  #btnU2{right:32px;bottom:calc(env(safe-area-inset-bottom,0px) + 142px);}
+  #btnU3{right:154px;bottom:calc(env(safe-area-inset-bottom,0px) + 34px);}
+  .ubtn.cd{border-color:rgba(232,227,216,.35)!important;color:rgba(232,227,216,.75);}
+  .ubtn.cd .ulbl{font-size:16px;font-weight:bold;}
+  .ubtn.lock{border-color:rgba(255,209,102,.4)!important;color:var(--gold);}
+  .ubtn.lock .ulbl{font-size:10px;line-height:1.3;font-weight:bold;}
+  .umask{position:absolute;inset:0;border-radius:50%;pointer-events:none;}
+  .ulbl{position:relative;z-index:1;}
   #overlay{position:fixed;inset:0;z-index:10;overflow:hidden;
     background:radial-gradient(ellipse at 50% 120%,#2a1218 0%,#0b0a10 60%);
     display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;
@@ -103,9 +106,12 @@
     #knob{width:68px;height:68px;}
     #btnAtk{width:98px;height:98px;font-size:17px;right:30px;
       bottom:calc(env(safe-area-inset-bottom,0px) + 34px);}
-    #btnUlt{width:80px;height:80px;font-size:13px;right:138px;
-      bottom:calc(env(safe-area-inset-bottom,0px) + 118px);}
-    #btnUlt.cd #ultLabel{font-size:24px;}
+    .ubtn{width:72px;height:72px;font-size:12px;}
+    #btnU1{right:134px;bottom:calc(env(safe-area-inset-bottom,0px) + 126px);}
+    #btnU2{right:42px;bottom:calc(env(safe-area-inset-bottom,0px) + 186px);}
+    #btnU3{right:200px;bottom:calc(env(safe-area-inset-bottom,0px) + 44px);}
+    .ubtn.cd .ulbl{font-size:22px;}
+    .ubtn.lock .ulbl{font-size:12px;}
   }
 </style>
 </head>
@@ -127,7 +133,9 @@
 
 <div class="ctl" id="stick"><div id="knob"></div></div>
 <div class="ctl btn" id="btnAtk">斬</div>
-<div class="btn" id="btnUlt"><div id="ultCdMask"></div><span id="ultLabel">光太刀</span></div>
+<div class="btn ubtn" id="btnU1"><div class="umask" id="btnU1M"></div><span class="ulbl" id="btnU1L">無音太刀</span></div>
+<div class="btn ubtn" id="btnU2"><div class="umask" id="btnU2M"></div><span class="ulbl" id="btnU2L">光太刀</span></div>
+<div class="btn ubtn" id="btnU3"><div class="umask" id="btnU3M"></div><span class="ulbl" id="btnU3L">光返し</span></div>
 
 <div id="overlay">
   <div id="slashDeco"></div>
@@ -161,10 +169,10 @@
       移動：左搖桿 / WASD・方向鍵<br>
       攻擊：斬 鍵 或 點畫面（自動索敵・連按三連斬）<br>
       衝刺：快速滑動 / K・Shift（無敵幀）<br>
-      奧義：奧義鍵 / Q（時停演出・冷卻 12 秒）<br>
-      Lv5「無音之太刀」直線居合，斬擊路徑上所有敵人<br>
-      Lv10「光之太刀」多目標瞬身連斬，單體時連續穿斬<br>
-      Lv15「光返し」折返再斬一輪＋終結十字斬，返照斬滅全場彈幕，每擊殺冷卻 -1 秒<br><br>
+      奧義三招各自獨立按鈕與冷卻，學會後可交替施放：<br>
+      Lv5「無音之太刀」Q・直線居合斬（冷卻 8 秒）<br>
+      Lv10「光之太刀」E・多目標連斬，單體連續穿斬（冷卻 12 秒）<br>
+      Lv15「光返し」R・折返雙輪＋終結十字斬＋斬滅彈幕，擊殺冷卻 -1 秒（冷卻 18 秒）<br><br>
       擊殺獲得經驗，精英與頭目掉落裝備<br>
       劍：攻擊與範圍提升／甲：減傷與血量提升<br>
       每 5 層有頭目鎮守，第 10 層起出現異形魔王<br>
@@ -210,7 +218,9 @@ addEventListener("keydown",e=>{keys[e.code]=true;
   if(["Space","ArrowUp","ArrowDown","ArrowLeft","ArrowRight"].includes(e.code))e.preventDefault();
   if(e.code==="Space"||e.code==="KeyJ")queueAttack();
   if(e.code==="ShiftLeft"||e.code==="ShiftRight"||e.code==="KeyK")queueDash();
-  if(e.code==="KeyQ")queueUlt();
+  if(e.code==="KeyQ")queueUlt(1);
+  if(e.code==="KeyE")queueUlt(2);
+  if(e.code==="KeyR")queueUlt(3);
 });
 addEventListener("keyup",e=>keys[e.code]=false);
 const stick=$("stick"),knob=$("knob");
@@ -229,8 +239,10 @@ const stickEnd=e=>{for(const t of e.changedTouches)if(t.identifier===stickId){st
 stick.addEventListener("touchend",stickEnd);stick.addEventListener("touchcancel",stickEnd);
 $("btnAtk").addEventListener("touchstart",e=>{e.preventDefault();queueAttack();});
 $("btnAtk").addEventListener("mousedown",()=>queueAttack());
-$("btnUlt").addEventListener("touchstart",e=>{e.preventDefault();queueUlt();});
-$("btnUlt").addEventListener("mousedown",()=>queueUlt());
+[["btnU1",1],["btnU2",2],["btnU3",3]].forEach(([id,t])=>{
+  $(id).addEventListener("touchstart",e=>{e.preventDefault();queueUlt(t);});
+  $(id).addEventListener("mousedown",()=>queueUlt(t));
+});
 let swipe=null;
 cv.addEventListener("touchstart",e=>{const t=e.changedTouches[0];
   swipe={id:t.identifier,x:t.clientX,y:t.clientY,t:performance.now()};},{passive:true});
@@ -248,7 +260,8 @@ cv.addEventListener("touchend",e=>{
 function buzz(ms){if(navigator.vibrate)try{navigator.vibrate(ms);}catch(e){}}
 
 // ============ 狀態 ============
-const ULT_CD=720; // 12 秒
+const ULT_CDS=[480,720,1080]; // 無音 8 秒／光太刀 12 秒／光返し 18 秒
+const ULT_REQ=[5,10,15];      // 各招習得等級
 const G={running:false,floor:1,hitstop:0,shake:0,shakeX:0,shakeY:0,time:0,clearTimer:0,flash:0,
   diff:0,unlockedDiff:0,bestFloor:0};
 const player={
@@ -256,14 +269,16 @@ const player={
   lvl:1,exp:0,expNext:30,atkMul:1,swordTier:0,armorTier:0,
   atkQueue:false,combo:0,comboWindow:0,atkTimer:0,atkCd:0,atkAng:0,
   dashQueue:false,dashDir:null,dashTimer:0,dashCd:0,inv:0,
-  ultQueue:false,ultCd:0,hurtFlash:0,trail:[],walk:0
+  ultQueue:0,ultCds:[0,0,0],hurtFlash:0,trail:[],walk:0
 };
 let enemies=[],particles=[],dmgNums=[],slashes=[],orbs=[],drops=[],bullets=[],hazards=[],stairs=null,boss=null;
 addEventListener("resize",resize);resize();
 let comboCount=0,comboFade=0;
 function queueAttack(){if(G.running)player.atkQueue=true;}
 function queueDash(dir){if(G.running){player.dashQueue=true;player.dashDir=dir||null;}}
-function queueUlt(){if(G.running&&player.lvl>=5)player.ultQueue=true;}
+function queueUlt(t){ // t=1 無音／2 光太刀／3 光返し，各自獨立冷卻
+  if(G.running&&!G.ultSeq&&player.lvl>=ULT_REQ[t-1]&&player.ultCds[t-1]<=0)player.ultQueue=t;
+}
 const atkPower=()=>player.atkMul*(1+player.swordTier*0.15); // 攻擊力成長 × 劍強化加成
 const ATK_LIGHT=11,ATK_HEAVY=22; // 普攻基礎傷害（輕斬／三段重斬）
 const ULT_MUL=[0,2.2,2.9,2.4];   // 奧義每刀倍率（×重斬）：無音之太刀／光之太刀／光返し
@@ -295,7 +310,7 @@ const E_TYPES={
 const BOSS_TYPES=["boss","prism","kenki","golem","queen"]; // fang(雙子)另計
 // ============ 難度 ============
 const DIFF_NAMES=["普通","惡夢","地獄"];
-const DIFF_MODS=[{hp:1,sp:1,dmg:1,exp:1},{hp:1.6,sp:1.15,dmg:1.35,exp:1.6},{hp:2.4,sp:1.3,dmg:1.8,exp:2.4}];
+const DIFF_MODS=[{hp:1,sp:1,dmg:1,exp:1},{hp:2,sp:1.4,dmg:2,exp:2},{hp:4,sp:1.8,dmg:4,exp:3.5}];
 const DIFF_TINT=[null,"#8b2fd6","#ff2418"]; // 頭目染色：惡夢偏紫／地獄偏紅
 const diffPrefix=()=>G.diff?DIFF_NAMES[G.diff]+"・":"";
 function mixHex(a,b,t){
@@ -352,7 +367,7 @@ function makeEnemy(type,f){
   const hp=t.hp*(1+(f-1)*0.22)*deep*D.hp;
   return {type,x,y,r:t.r,
     hp,maxhp:hp,
-    speed:Math.min(t.speed*(1+(f-1)*0.055)*D.sp,t.speed*2.3),
+    speed:Math.min(t.speed*(1+(f-1)*0.055)*D.sp,t.speed*2.6),
     dmg:t.dmg*(1+(f-1)*0.06)*deep*D.dmg,
     color,exp:Math.round(t.exp*(1+(f-1)*0.04)*D.exp),
     kbx:0,kby:0,flash:0,wobble:rnd(0,6.28),atkCd:0,dead:0,
@@ -396,7 +411,7 @@ function updatePlayer(){
   p.dashQueue=false;p.dashDir=null;
   if(p.dashCd>0)p.dashCd--;
   if(p.inv>0)p.inv--;
-  if(p.ultCd>0)p.ultCd--;
+  for(let i=0;i<3;i++)if(p.ultCds[i]>0)p.ultCds[i]--;
 
   if(p.dashTimer>0){p.dashTimer--;p.trail.push({x:p.x,y:p.y,life:10});}
   else{
@@ -418,16 +433,18 @@ function updatePlayer(){
     doSlash(third);
   }else p.atkQueue=false;
 
-  if(p.ultQueue){p.ultQueue=false;if(p.ultCd<=0)doUlt();}
+  if(p.ultQueue){const t=p.ultQueue;p.ultQueue=0;doUlt(t);}
   if(p.hurtFlash>0)p.hurtFlash--;
 
   // 撿裝備（靠近會自動吸過來，避免漏撿）
   for(const d of drops){
     if(d.taken)continue;
     const dd2=dist2(p,d);
-    if(dd2<70*70&&dd2>26*26){
+    d.age=(d.age||0)+1;
+    if((dd2<70*70||d.age>180)&&dd2>26*26){ // 落地 3 秒沒撿也會全場飛向玩家
       const dd=Math.sqrt(dd2)||1;
-      d.x+=(p.x-d.x)/dd*3.2;d.y+=(p.y-d.y)/dd*3.2;
+      const pull=d.age>180?5.5:3.2;
+      d.x+=(p.x-d.x)/dd*pull;d.y+=(p.y-d.y)/dd*pull;
     }
     if(dd2<28*28){
       d.taken=1;
@@ -516,10 +533,9 @@ function doSlash(third){
 }
 // 奧義：光之太刀（時停 → 蓄力 → 瞬身連斬 → 收劍後一齊結算）
 let ultTrails=[];
-function doUlt(){
+function doUlt(tier){ // 1 無音之太刀 / 2 光之太刀 / 3 光返し
   const p=player;
-  p.ultCd=ULT_CD;
-  const tier=p.lvl>=15?3:p.lvl>=10?2:1; // 1 無音之太刀 / 2 光之太刀 / 3 光返し
+  p.ultCds[tier-1]=ULT_CDS[tier-1];
   const R=260*(1+p.swordTier*0.08);
   const path=[];let cur={x:p.x,y:p.y};
   let targets=[];
@@ -639,7 +655,7 @@ function updateUltSeq(){
         ultTrails.push({x1:p.x-170,y1:p.y,x2:p.x+170,y2:p.y,life:34,max:34,rgb:"255,255,255"});
         ultTrails.push({x1:p.x,y1:p.y-140,x2:p.x,y2:p.y+140,life:34,max:34,rgb:"255,255,255"});
         if(kills>0){
-          p.ultCd=Math.max(120,p.ultCd-kills*60); // 每擊殺回轉 1 秒冷卻
+          p.ultCds[2]=Math.max(120,p.ultCds[2]-kills*60); // 每擊殺回轉 1 秒冷卻
           dmgNum(p.x,p.y-28,0,true,`回轉 -${kills} 秒`);
         }
       }
@@ -1420,21 +1436,24 @@ function updateFx(){
   const tag=$("comboTag");
   tag.style.opacity=comboCount>1?1:0;
   tag.textContent=comboCount+" COMBO";
-  // 光之太刀 CD：環形倒數 + 秒數
-  const ultBtn=$("btnUlt"),ultLbl=$("ultLabel"),ultMask=$("ultCdMask");
-  if(player.lvl<5){ // Lv5 才習得奧義：鎖定但清楚標示
-    ultMask.style.background="rgba(0,0,0,0.5)";
-    ultLbl.innerHTML="Lv5<br>解鎖";
-    ultBtn.classList.add("cd","lock");
-  }else if(player.ultCd>0){
-    const frac=player.ultCd/ULT_CD;
-    ultMask.style.background=`conic-gradient(rgba(0,0,0,0.78) ${frac*360}deg, transparent ${frac*360}deg)`;
-    ultLbl.textContent=Math.ceil(player.ultCd/60);
-    ultBtn.classList.add("cd");ultBtn.classList.remove("lock");
-  }else{
-    ultMask.style.background="none";
-    ultLbl.textContent=player.lvl>=15?"光返し":player.lvl>=10?"光太刀":"無音太刀";
-    ultBtn.classList.remove("cd","lock");
+  // 三招奧義各自的按鈕狀態：鎖定／冷卻環形倒數／就緒
+  const ULT_UI=[["btnU1","無音太刀"],["btnU2","光太刀"],["btnU3","光返し"]];
+  for(let i=0;i<3;i++){
+    const btn=$(ULT_UI[i][0]),lbl=$(ULT_UI[i][0]+"L"),mask=$(ULT_UI[i][0]+"M");
+    if(player.lvl<ULT_REQ[i]){
+      mask.style.background="rgba(0,0,0,0.5)";
+      lbl.innerHTML=`Lv${ULT_REQ[i]}<br>解鎖`;
+      btn.classList.add("cd","lock");
+    }else if(player.ultCds[i]>0){
+      const frac=player.ultCds[i]/ULT_CDS[i];
+      mask.style.background=`conic-gradient(rgba(0,0,0,0.78) ${frac*360}deg, transparent ${frac*360}deg)`;
+      lbl.textContent=Math.ceil(player.ultCds[i]/60);
+      btn.classList.add("cd");btn.classList.remove("lock");
+    }else{
+      mask.style.background="none";
+      lbl.textContent=ULT_UI[i][1];
+      btn.classList.remove("cd","lock");
+    }
   }
 }
 
@@ -1744,7 +1763,7 @@ function startGame(){
   G.running=true;G.flash=0;
   G.floor=G.runFloor>=2?G.runFloor:1; // 有進行中的紀錄就從該樓層續戰
   // 死亡不掉等級也不掉裝備：保留 lvl/exp/攻擊/血量上限/劍甲強化，只重置位置與狀態
-  Object.assign(player,{hp:player.maxhp,x:W/2,y:H-90,inv:30,ultCd:0,combo:0});
+  Object.assign(player,{hp:player.maxhp,x:W/2,y:H-90,inv:30,ultCds:[0,0,0],ultQueue:0,combo:0});
   $("floorTag").textContent=diffPrefix()+(G.floor%5===0?"⚔ ":"")+`地下 ${G.floor} 層`;
   $("lvTag").textContent=player.lvl;
   $("equipTag").textContent=`劍 +${player.swordTier}・甲 +${player.armorTier}`;
