@@ -2099,15 +2099,14 @@ function drawCover(t){
     ccx.fillRect(px,py,3,3);
   }
 }
-// 善逸首頁立繪：正面立姿——亂翹金髮、橘羽織三角紋、深色隊服、黃刃雷刀指天
+// 善逸首頁立繪：壓低蹲姿居合——頭埋低不露臉、雙手按刀、羽織後揚、刀口寒光電光
 function drawCoverZen(t){
   const cp=CHARS.zenitsu.cover;
   ccx.clearRect(0,0,360,460);
   const sw=Math.sin(t*0.03);
-  const cxm=170; // 人物中軸
-  // 金色光暈
-  let g=ccx.createRadialGradient(cxm,210,20,cxm,210,240);
-  g.addColorStop(0,`rgba(${cp.glow},0.18)`);g.addColorStop(1,"rgba(0,0,0,0)");
+  // 金色光暈（重心放低）
+  let g=ccx.createRadialGradient(180,300,20,180,300,230);
+  g.addColorStop(0,`rgba(${cp.glow},0.2)`);g.addColorStop(1,"rgba(0,0,0,0)");
   ccx.fillStyle=g;ccx.fillRect(0,0,360,460);
   // 鋸齒閃電劈落
   ccx.save();
@@ -2122,119 +2121,114 @@ function drawCoverZen(t){
     ccx.stroke();
   }
   ccx.restore();
-  // 草鞋足袋
-  ccx.fillStyle="#1c1826";
-  ccx.fillRect(cxm-44,432,34,12);ccx.fillRect(cxm+10,432,34,12);
-  // 燈籠褲（寬鬆束口）
-  ccx.fillStyle="#e8e3d8";
-  ccx.beginPath();
-  ccx.moveTo(cxm-34,300);
-  ccx.quadraticCurveTo(cxm-58,368,cxm-46,428);
-  ccx.lineTo(cxm-14,428);ccx.quadraticCurveTo(cxm-10,370,cxm-8,320);
-  ccx.lineTo(cxm+8,320);ccx.quadraticCurveTo(cxm+10,370,cxm+14,428);
-  ccx.lineTo(cxm+46,428);ccx.quadraticCurveTo(cxm+58,368,cxm+34,300);
-  ccx.closePath();ccx.fill();
-  ccx.fillStyle="#c9c2b0";
-  ccx.fillRect(cxm-10,312,4,96);ccx.fillRect(cxm+14,320,4,88);
-  // 深色隊服軀幹
-  ccx.fillStyle="#2b2620";
-  ccx.beginPath();
-  ccx.moveTo(cxm-30,168);ccx.lineTo(cxm+30,168);
-  ccx.quadraticCurveTo(cxm+36,240,cxm+32,304);
-  ccx.lineTo(cxm-32,304);ccx.quadraticCurveTo(cxm-36,240,cxm-30,168);
-  ccx.closePath();ccx.fill();
-  // 白腰帶與鈕扣
-  ccx.fillStyle="#e8e3d8";ccx.fillRect(cxm-33,282,66,14);
-  ccx.fillStyle="#ffd166";
-  ccx.fillRect(cxm-2,182,4,4);ccx.fillRect(cxm-2,208,4,4);ccx.fillRect(cxm-2,234,4,4);
-  // 橘羽織：兩片自肩披落（含垂袖），隨風微擺
-  g=ccx.createLinearGradient(0,160,0,380);
-  g.addColorStop(0,"#e8a02c");g.addColorStop(1,"#c97f1d");
+  // ===== 蹲低拔刀的人物（鏡射成面向右，朝向選單） =====
+  ccx.save();
+  ccx.translate(360,0);ccx.scale(-1,1);
+  const PANT="#3a2d1c",UNI="#2b2620",SKIN="#e8bfa4";
+  ccx.lineCap="round";
+  // 地面影
+  ccx.fillStyle="rgba(0,0,0,0.45)";
+  ccx.beginPath();ccx.ellipse(190,430,120,13,0,0,7);ccx.fill();
+  // 蓄勢的速度線（身後）
+  ccx.strokeStyle="rgba(255,255,255,0.1)";ccx.lineWidth=3;
+  for(const[lx,ly,ll]of[[240,246,86],[258,284,74],[248,320,92]]){
+    ccx.beginPath();ccx.moveTo(lx,ly);ccx.lineTo(lx+ll,ly);ccx.stroke();
+  }
+  // 後腿（向後蹬直）
+  ccx.strokeStyle=PANT;ccx.lineWidth=34;
+  ccx.beginPath();ccx.moveTo(214,306);ccx.quadraticCurveTo(252,350,284,402);ccx.stroke();
+  ccx.strokeStyle="#1c1826";ccx.lineWidth=16; // 束口綁腿
+  ccx.beginPath();ccx.moveTo(286,404);ccx.lineTo(294,416);ccx.stroke();
+  ccx.fillStyle="#1c1826";ccx.fillRect(276,422,46,10); // 草鞋
+  // 前腿（深蹲屈膝）
+  ccx.strokeStyle=PANT;ccx.lineWidth=38;
+  ccx.beginPath();ccx.moveTo(198,302);ccx.quadraticCurveTo(130,328,120,360);ccx.stroke();
+  ccx.strokeStyle=PANT;ccx.lineWidth=26;
+  ccx.beginPath();ccx.moveTo(120,358);ccx.lineTo(108,404);ccx.stroke();
+  ccx.strokeStyle="#1c1826";ccx.lineWidth=16;
+  ccx.beginPath();ccx.moveTo(108,402);ccx.lineTo(104,416);ccx.stroke();
+  ccx.fillStyle="#1c1826";ccx.fillRect(84,422,46,10);
+  // 羽織：向後高高揚起的大擺（動勢）
+  g=ccx.createLinearGradient(140,180,330,340);
+  g.addColorStop(0,"#e8a02c");g.addColorStop(1,"#b96f15");
   ccx.fillStyle=g;
   ccx.beginPath();
-  ccx.moveTo(cxm-30,164);
-  ccx.quadraticCurveTo(cxm-78,200+sw*4,cxm-84,300);
-  ccx.quadraticCurveTo(cxm-86,344,cxm-70,368);
-  ccx.lineTo(cxm-40,340);ccx.quadraticCurveTo(cxm-44,240,cxm-26,180);
-  ccx.closePath();ccx.fill();
-  ccx.beginPath();
-  ccx.moveTo(cxm+30,164);
-  ccx.quadraticCurveTo(cxm+78,200-sw*4,cxm+84,300);
-  ccx.quadraticCurveTo(cxm+86,344,cxm+70,368);
-  ccx.lineTo(cxm+40,340);ccx.quadraticCurveTo(cxm+44,240,cxm+26,180);
+  ccx.moveTo(150,214);
+  ccx.quadraticCurveTo(230,166+sw*7,298,192+sw*9);
+  ccx.quadraticCurveTo(332,244+sw*6,308,318);
+  ccx.quadraticCurveTo(282,352,240,342);
+  ccx.quadraticCurveTo(212,326,206,300);
+  ccx.quadraticCurveTo(180,260,150,214);
   ccx.closePath();ccx.fill();
   // 羽織白三角紋
-  ccx.fillStyle="rgba(245,239,224,0.92)";
-  for(const[tx,ty,ts]of[[cxm-72,300,7],[cxm-62,250,6],[cxm-70,346,7],[cxm-52,212,5],
-    [cxm+50,250,6],[cxm+58,300,7],[cxm+56,346,7],[cxm+42,212,5]]){
+  ccx.fillStyle="rgba(245,239,224,0.9)";
+  for(const[tx,ty,ts]of[[236,220,7],[276,250,8],[252,300,7],[292,306,6],[224,268,6],[262,330,6]]){
     ccx.beginPath();ccx.moveTo(tx,ty);ccx.lineTo(tx+ts,ty-ts*2);ccx.lineTo(tx+ts*2,ty);
     ccx.closePath();ccx.fill();
   }
-  // 左手垂下
-  ccx.strokeStyle="#2b2620";ccx.lineWidth=12;ccx.lineCap="round";
-  ccx.beginPath();ccx.moveTo(cxm-28,196);ccx.quadraticCurveTo(cxm-40,240,cxm-38,268);ccx.stroke();
-  ccx.fillStyle="#e8bfa4";ccx.beginPath();ccx.arc(cxm-38,274,8,0,7);ccx.fill();
-  // 右手持刀，刀指右上
-  ccx.strokeStyle="#2b2620";ccx.lineWidth=13;
-  ccx.beginPath();ccx.moveTo(cxm+28,196);ccx.quadraticCurveTo(cxm+58,214,cxm+76,198);ccx.stroke();
-  ccx.fillStyle="#e8bfa4";ccx.beginPath();ccx.arc(cxm+82,192,9,0,7);ccx.fill();
-  // 刀：褐柄金鍔、黃刃白鋒＋流光＋刀尖電光
-  ccx.save();ccx.translate(cxm+82,192);ccx.rotate(-0.55);
-  ccx.fillStyle="#6b4a2b";ccx.fillRect(-6,10,12,26);
-  ccx.fillStyle="#ffd166";ccx.fillRect(-10,3,20,8);
-  const bg=ccx.createLinearGradient(0,0,0,-150);
-  bg.addColorStop(0,"#ffd95e");bg.addColorStop(1,"#fff3c4");
-  ccx.fillStyle=bg;ccx.fillRect(-4,-148,8,150);
-  ccx.fillStyle="rgba(255,255,255,0.9)";ccx.fillRect(-4,-148,3,150);
-  const gp=(t*0.8)%170;
-  if(gp<150){ccx.fillStyle="#fff";ccx.fillRect(-5,-gp,10,6);}
-  ccx.strokeStyle="rgba(255,241,118,0.9)";ccx.lineWidth=2.5;
-  ccx.beginPath();ccx.moveTo(0,-150);ccx.lineTo(8,-162);ccx.lineTo(2,-164);ccx.lineTo(12,-178);ccx.stroke();
+  // 軀幹（前傾壓低）
+  ccx.strokeStyle=UNI;ccx.lineWidth=42;
+  ccx.beginPath();ccx.moveTo(206,300);ccx.lineTo(140,228);ccx.stroke();
+  // 白腰帶
+  ccx.strokeStyle="#e8e3d8";ccx.lineWidth=15;
+  ccx.beginPath();ccx.moveTo(190,312);ccx.lineTo(224,294);ccx.stroke();
+  // 刀鞘（橫在腰前，刀口朝前下）
+  ccx.strokeStyle="#151221";ccx.lineWidth=9;
+  ccx.beginPath();ccx.moveTo(142,286);ccx.lineTo(218,324);ccx.stroke();
+  ccx.fillStyle="#ffd166";ccx.fillRect(214,318,9,9); // 鞘尾金具
+  // 鍔、柄與刀口微露的一線寒光
+  ccx.save();ccx.translate(140,285);ccx.rotate(-0.48);
+  ccx.fillStyle="#fff3c4";ccx.fillRect(2,-3,12,6); // 出鞘一寸的黃刃
+  ccx.fillStyle="#ffd166";ccx.fillRect(-4,-8,7,16); // 鍔
+  ccx.fillStyle="#6b4a2b";ccx.fillRect(-36,-5,32,10); // 柄
   ccx.restore();
-  // 亂翹金髮：放射髮束（先畫髮，再蓋臉）
+  // 刀口電光（劈啪跳動）
+  ccx.save();
+  ccx.strokeStyle="rgba(255,241,118,0.95)";ccx.lineWidth=2.5;
+  ccx.shadowColor="#ffe14d";ccx.shadowBlur=10;
+  const jt=Math.floor(t*0.05);
+  for(let k=0;k<3;k++){
+    let px=140,py=283;
+    ccx.beginPath();ccx.moveTo(px,py);
+    for(let i=0;i<3;i++){
+      px+=Math.cos(jt*1.3+k*2.1+i*2.6)*15-6;
+      py+=Math.sin(jt*1.7+k*1.4+i*1.9)*12-3;
+      ccx.lineTo(px,py);
+    }
+    ccx.stroke();
+  }
+  ccx.restore();
+  // 手臂：右手握柄、左手扶鞘口
+  ccx.strokeStyle=UNI;ccx.lineWidth=13;
+  ccx.beginPath();ccx.moveTo(148,238);ccx.quadraticCurveTo(122,254,114,272);ccx.stroke();
+  ccx.fillStyle=SKIN;ccx.beginPath();ccx.arc(112,276,8,0,7);ccx.fill();
+  ccx.strokeStyle=UNI;ccx.lineWidth=12;
+  ccx.beginPath();ccx.moveTo(154,246);ccx.quadraticCurveTo(150,268,149,283);ccx.stroke();
+  ccx.fillStyle=SKIN;ccx.beginPath();ccx.arc(149,288,7,0,7);ccx.fill();
+  // 頭：壓低埋進髮裡，只露下顎（不露正臉）
+  ccx.fillStyle="#f6dcc0";
+  ccx.beginPath();ccx.arc(122,202,21,0,7);ccx.fill();
+  // 亂翹金髮：往上後方炸開的髮束
   const hairCols=["#c8860a","#e8b420","#f2c230","#ffd95e","#ffe680"];
-  for(let i=0;i<13;i++){
-    const a=(160-i*12)*Math.PI/180;
-    const L=52+((i*7)%3)*10+sw*3;
-    const bx2=cxm+Math.cos(a)*24,by2=118-Math.sin(a)*24;
-    const txp=cxm+Math.cos(a)*L,typ=118-Math.sin(a)*L;
+  for(let i=0;i<11;i++){
+    const a=(214-i*17)*Math.PI/180;
+    const L=36+((i*5)%3)*9+sw*2;
+    const bx2=122+Math.cos(a)*13,by2=200-Math.sin(a)*13;
+    const txp=122+Math.cos(a)*L,typ=200-Math.sin(a)*L;
     const pa=a+Math.PI/2;
     ccx.fillStyle=hairCols[i%hairCols.length];
     ccx.beginPath();
-    ccx.moveTo(bx2+Math.cos(pa)*10,by2-Math.sin(pa)*10);
+    ccx.moveTo(bx2+Math.cos(pa)*8,by2-Math.sin(pa)*8);
     ccx.lineTo(txp,typ);
-    ccx.lineTo(bx2-Math.cos(pa)*10,by2+Math.sin(pa)*10);
+    ccx.lineTo(bx2-Math.cos(pa)*8,by2+Math.sin(pa)*8);
     ccx.closePath();ccx.fill();
   }
-  // 臉
-  ccx.fillStyle="#f6dcc0";
-  ccx.beginPath();ccx.arc(cxm,118,34,0,7);ccx.fill();
-  // 鋸齒瀏海
+  // 前髮整片蓋住臉
   ccx.fillStyle="#f2c230";
-  ccx.beginPath();ccx.moveTo(cxm-33,106);
-  ccx.quadraticCurveTo(cxm-30,82,cxm,80);
-  ccx.quadraticCurveTo(cxm+30,82,cxm+33,106);
-  ccx.lineTo(cxm+24,100);ccx.lineTo(cxm+16,112);ccx.lineTo(cxm+8,100);
-  ccx.lineTo(cxm,112);ccx.lineTo(cxm-8,100);ccx.lineTo(cxm-16,112);ccx.lineTo(cxm-24,100);
-  ccx.closePath();ccx.fill();
-  // 苦惱八字眉
-  ccx.strokeStyle="#c8860a";ccx.lineWidth=3;ccx.lineCap="round";
-  ccx.beginPath();ccx.moveTo(cxm-18,115);ccx.lineTo(cxm-8,119);ccx.stroke();
-  ccx.beginPath();ccx.moveTo(cxm+18,115);ccx.lineTo(cxm+8,119);ccx.stroke();
-  // 琥珀色大眼
-  ccx.fillStyle="#fff";
-  ccx.beginPath();ccx.ellipse(cxm-12,128,6.5,7.5,0,0,7);ccx.fill();
-  ccx.beginPath();ccx.ellipse(cxm+12,128,6.5,7.5,0,0,7);ccx.fill();
-  ccx.fillStyle="#e8a020";
-  ccx.beginPath();ccx.arc(cxm-12,129,4.4,0,7);ccx.fill();
-  ccx.beginPath();ccx.arc(cxm+12,129,4.4,0,7);ccx.fill();
-  ccx.fillStyle="#7a4c08";
-  ccx.beginPath();ccx.arc(cxm-12,129,1.8,0,7);ccx.fill();
-  ccx.beginPath();ccx.arc(cxm+12,129,1.8,0,7);ccx.fill();
-  ccx.fillStyle="#fff";ccx.fillRect(cxm-14,125,2,2);ccx.fillRect(cxm+10,125,2,2);
-  // 微張小嘴
-  ccx.strokeStyle="#8a5c3a";ccx.lineWidth=2;
-  ccx.beginPath();ccx.arc(cxm,142,5,0.3,2.84);ccx.stroke();
+  ccx.beginPath();ccx.arc(127,196,19,0,7);ccx.fill();
+  ccx.fillStyle="#e8b420";
+  ccx.beginPath();ccx.arc(116,188,12,0,7);ccx.fill();
+  ccx.restore(); // 取消鏡射
   // 飄浮金色火星
   for(let i=0;i<7;i++){
     const px=40+((i*53+t*0.9)%280),py=440-((t*0.7+i*61)%400);
