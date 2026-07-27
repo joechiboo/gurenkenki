@@ -44,6 +44,10 @@
   #btnU1{right:104px;bottom:calc(env(safe-area-inset-bottom,0px) + 96px);}
   #btnU2{right:32px;bottom:calc(env(safe-area-inset-bottom,0px) + 142px);}
   #btnU3{right:154px;bottom:calc(env(safe-area-inset-bottom,0px) + 34px);}
+  #btnU4{right:204px;bottom:calc(env(safe-area-inset-bottom,0px) + 96px);}
+  #btnU5{right:82px;bottom:calc(env(safe-area-inset-bottom,0px) + 188px);}
+  #btnU4,#btnU5{display:none;} /* 五式角色才顯示 */
+  body.ch5 #btnU4,body.ch5 #btnU5{display:flex;}
   .ubtn.cd{border-color:rgba(232,227,216,.35)!important;color:rgba(232,227,216,.75);}
   .ubtn.cd .ulbl{font-size:16px;font-weight:bold;}
   .ubtn.lock{border-color:rgba(255,209,102,.4)!important;color:var(--gold);}
@@ -66,9 +70,11 @@
     100%{transform:translateY(-72vh) translateX(14px);opacity:0}}
   #coverCv{position:absolute;right:0;bottom:0;height:min(96vh,85vw);z-index:0;
     background:transparent;filter:drop-shadow(0 0 30px rgba(226,59,59,.35));opacity:.95;}
+  #coverCv.left{right:auto;left:0;filter:drop-shadow(0 0 30px rgba(244,201,58,.35));} /* 善逸：立繪靠左＋金色光暈 */
   /* 直式：立繪置中沉底當背景，半透明不搶文字 */
   @media (orientation:portrait){
     #coverCv{right:50%;transform:translateX(50%);height:min(62vh,135vw);opacity:.5;}
+    #coverCv.left{left:50%;right:auto;transform:translateX(-50%);}
   }
   #heroCv{height:110px;image-rendering:pixelated;background:transparent;margin-bottom:4px;}
   #ovEyebrow{font-size:12px;letter-spacing:6px;color:var(--ember);position:relative;z-index:1;}
@@ -76,6 +82,14 @@
     text-shadow:0 0 6px rgba(232,227,216,.3),0 4px 0 var(--crimson),0 0 34px rgba(226,59,59,.55);}
   #overlay .sub{font-size:13px;line-height:1.9;opacity:.85;position:relative;z-index:1;}
   #btnRow{display:flex;gap:14px;margin-top:10px;position:relative;z-index:1;}
+  #charRow{display:flex;gap:10px;position:relative;z-index:1;}
+  .charBtn{padding:8px 18px!important;font-size:13px!important;letter-spacing:2px!important;
+    background:transparent!important;color:var(--bone)!important;
+    border:2px solid rgba(232,227,216,.3)!important;cursor:pointer;
+    display:flex;flex-direction:column;gap:2px;align-items:center;}
+  .charBtn span{font-size:10px;opacity:.65;letter-spacing:1px;}
+  .charBtn.sel{border-color:var(--gold)!important;color:#fff!important;
+    background:rgba(255,209,102,.18)!important;}
   #diffRow{display:flex;gap:10px;position:relative;z-index:1;}
   .diffBtn{padding:8px 16px!important;font-size:12px!important;letter-spacing:3px!important;
     background:transparent!important;color:var(--bone)!important;
@@ -110,6 +124,8 @@
     #btnU1{right:134px;bottom:calc(env(safe-area-inset-bottom,0px) + 126px);}
     #btnU2{right:42px;bottom:calc(env(safe-area-inset-bottom,0px) + 186px);}
     #btnU3{right:200px;bottom:calc(env(safe-area-inset-bottom,0px) + 44px);}
+    #btnU4{right:244px;bottom:calc(env(safe-area-inset-bottom,0px) + 126px);}
+    #btnU5{right:94px;bottom:calc(env(safe-area-inset-bottom,0px) + 254px);}
     .ubtn.cd .ulbl{font-size:22px;}
     .ubtn.lock .ulbl{font-size:12px;}
   }
@@ -120,7 +136,7 @@
 
 <div id="hud">
   <div class="hpwrap">
-    <div class="label">Lv <span id="lvTag">1</span> 劍士</div>
+    <div class="label">Lv <span id="lvTag">1</span> <span id="charTag">艾莉絲</span></div>
     <div class="bar"><div class="fill" id="hpfill"></div></div>
     <div class="bar" id="expbar"><div class="fill" id="expfill"></div></div>
   </div>
@@ -136,6 +152,8 @@
 <div class="btn ubtn" id="btnU1"><div class="umask" id="btnU1M"></div><span class="ulbl" id="btnU1L">無音太刀</span></div>
 <div class="btn ubtn" id="btnU2"><div class="umask" id="btnU2M"></div><span class="ulbl" id="btnU2L">光太刀</span></div>
 <div class="btn ubtn" id="btnU3"><div class="umask" id="btnU3M"></div><span class="ulbl" id="btnU3L">光返し</span></div>
+<div class="btn ubtn" id="btnU4"><div class="umask" id="btnU4M"></div><span class="ulbl" id="btnU4L">遠雷</span></div>
+<div class="btn ubtn" id="btnU5"><div class="umask" id="btnU5M"></div><span class="ulbl" id="btnU5L">熱界雷</span></div>
 
 <div id="overlay">
   <div id="slashDeco"></div>
@@ -149,6 +167,10 @@
   <h1 id="ovTitle">紅蓮劍姬</h1>
   <div class="sub" id="ovSub">紅髮的劍士孤身立於地城之口<br>斬開黑暗，直至最深層</div>
   <div class="sub" id="recordTag" style="opacity:.65;color:var(--gold)"></div>
+  <div id="charRow">
+    <button class="charBtn sel" data-c="eris">艾莉絲<span>劍神流・光刀三式</span></button>
+    <button class="charBtn" data-c="zenitsu">我妻善逸<span>雷之呼吸・六式</span></button>
+  </div>
   <div id="diffRow">
     <button class="diffBtn" data-d="0">普通</button>
     <button class="diffBtn" data-d="1">惡夢</button>
@@ -168,13 +190,26 @@
     <div class="helpBody">
       移動：左搖桿 / WASD・方向鍵<br>
       攻擊：斬 鍵 或 點畫面（自動索敵・連按三連斬）<br>
-      衝刺：快速滑動 / K・Shift（無敵幀）<br>
-      奧義三招各自獨立按鈕與冷卻，學會後可交替施放：<br>
-      Lv5「無音之太刀」Q・直線居合斬（冷卻 8 秒）<br>
-      Lv10「光之太刀」E・多目標連斬，單體連續穿斬（冷卻 12 秒）<br>
-      Lv15「光返し」R・折返雙輪＋終結十字斬＋斬滅彈幕，擊殺冷卻 -1 秒（冷卻 18 秒）<br><br>
+      衝刺：快速滑動 / K・Shift / 方向鍵連按兩下（無敵幀）<br>
+      <div id="helpEris">
+      奧義各自獨立按鈕與冷卻（鍵盤 Q／E／R）：<br><br>
+      <span style="color:var(--crimson)">艾莉絲・劍神流光刀三式</span><br>
+      Lv5「無音之太刀」Q・直線居合斬（8 秒）<br>
+      Lv10「光之太刀」E・多目標連斬，單體連續穿斬（12 秒）<br>
+      Lv15「光返し」R・折返雙輪＋終結十字斬＋斬滅彈幕，擊殺冷卻 -1 秒（18 秒）<br><br>
+      </div>
+      <div id="helpZen">
+      奧義各自獨立按鈕與冷卻（鍵盤 Q／E／R／T／F）：<br><br>
+      <span style="color:var(--gold)">我妻善逸・雷之呼吸六式</span>（每 3 級學一型）<br>
+      Lv3 壹之型「霹靂一閃」Q・神速直線居合（6 秒）<br>
+      Lv6 貳之型「稻魂」E・正面扇形五連斬（9 秒）<br>
+      Lv9 參之型「聚蚊成雷」R・迴旋斬並震碎彈幕（11 秒）<br>
+      Lv12 肆之型「遠雷」T・落雷狙擊遠處敵人（13 秒）<br>
+      Lv15 伍之型「熱界雷」F・瞬身重斬最強敵並麻痺（16 秒）<br>
+      Lv18 陸之型「電轟雷轟」普攻進化：雷光連鎖＋第三段雷爆<br><br>
+      </div>
       擊殺獲得經驗，精英與頭目掉落裝備<br>
-      劍：攻擊與範圍提升／甲：減傷與血量提升<br>
+      劍：攻擊與範圍提升／甲：減傷與血量提升（<span style="color:var(--gold)">裝備兩人共享</span>，等級各自成長）<br>
       每 5 層有頭目鎮守，第 10 層起出現異形魔王<br>
       <span style="color:var(--gold)">死亡不會失去等級與裝備</span>，可放心挑戰更深層
     </div>
@@ -214,13 +249,23 @@ const $=id=>document.getElementById(id);
 
 // ============ 輸入 ============
 const keys={};
+const DIRS={KeyW:[0,-1],ArrowUp:[0,-1],KeyS:[0,1],ArrowDown:[0,1],
+  KeyA:[-1,0],ArrowLeft:[-1,0],KeyD:[1,0],ArrowRight:[1,0]};
+const dtap={}; // 同方向快速連按兩下＝朝該方向衝刺
 addEventListener("keydown",e=>{keys[e.code]=true;
   if(["Space","ArrowUp","ArrowDown","ArrowLeft","ArrowRight"].includes(e.code))e.preventDefault();
   if(e.code==="Space"||e.code==="KeyJ")queueAttack();
   if(e.code==="ShiftLeft"||e.code==="ShiftRight"||e.code==="KeyK")queueDash();
+  if(DIRS[e.code]&&!e.repeat){
+    const now=performance.now();
+    if(now-(dtap[e.code]||0)<260)queueDash({x:DIRS[e.code][0],y:DIRS[e.code][1]});
+    dtap[e.code]=now;
+  }
   if(e.code==="KeyQ")queueUlt(1);
   if(e.code==="KeyE")queueUlt(2);
   if(e.code==="KeyR")queueUlt(3);
+  if(e.code==="KeyT")queueUlt(4);
+  if(e.code==="KeyF")queueUlt(5);
 });
 addEventListener("keyup",e=>keys[e.code]=false);
 const stick=$("stick"),knob=$("knob");
@@ -239,7 +284,7 @@ const stickEnd=e=>{for(const t of e.changedTouches)if(t.identifier===stickId){st
 stick.addEventListener("touchend",stickEnd);stick.addEventListener("touchcancel",stickEnd);
 $("btnAtk").addEventListener("touchstart",e=>{e.preventDefault();queueAttack();});
 $("btnAtk").addEventListener("mousedown",()=>queueAttack());
-[["btnU1",1],["btnU2",2],["btnU3",3]].forEach(([id,t])=>{
+[["btnU1",1],["btnU2",2],["btnU3",3],["btnU4",4],["btnU5",5]].forEach(([id,t])=>{
   $(id).addEventListener("touchstart",e=>{e.preventDefault();queueUlt(t);});
   $(id).addEventListener("mousedown",()=>queueUlt(t));
 });
@@ -259,9 +304,46 @@ cv.addEventListener("touchend",e=>{
 },{passive:true});
 function buzz(ms){if(navigator.vibrate)try{navigator.vibrate(ms);}catch(e){}}
 
+// ============ 角色 ============
+// 艾莉絲：劍神流光刀三式（原有玩法不變）
+// 善逸：雷之呼吸，每 3 級學一型（壹～伍為按鈕招），Lv18 陸之型讓普攻進化成奧義
+const CHARS={
+  eris:{
+    name:"艾莉絲",
+    eyebrow:"劍神流・地城試煉",
+    sub:"紅髮的劍士孤身立於地城之口<br>斬開黑暗，直至最深層",
+    nU:3,reqs:[5,10,15],cds:[480,720,1080], // 無音 8 秒／光太刀 12 秒／光返し 18 秒
+    labels:["無音太刀","光太刀","光返し"],
+    fullNames:["奧義・無音之太刀","奧義・光之太刀","奧義・光返し"],
+    accent:"#e23b3b",eye:"#b3242c",eyeHi:"#ff6a5e",
+    suit:"#3a2f4a",belt:"#e23b3b",coat:"#e8e3d8",coatS:"#c9c2b0",
+    hair:{d:"#a12626",m:"#d63a3a",l:"#ef5f4f"},
+    cover:{glow:"226,59,59",accent:"#e23b3b",arcHi:"rgba(255,150,120,0.8)",scarf:"#b3242c",base:"#a12626",
+      coatA:"#2a2333",coatB:"#151020",arm:"#241d30",
+      ribbons:["#7e1b1b","#b32929","#a12626","#c93636","#e14a3f","#8e1f1f","#ef644d"],
+      ahoge:"#e14a3f",bangs:"#c93636",brow:"#7e1b1b",eye:"#e13530",eyeGlow:"#ff3b30"}
+  },
+  zenitsu:{
+    name:"我妻善逸",
+    eyebrow:"雷之呼吸・地城試煉",
+    sub:"膽小的雷之劍士踏入地城<br>雷鳴響起時，六式將劈開最深的黑暗",
+    nU:5,reqs:[3,6,9,12,15],cds:[360,540,660,780,960], // 6／9／11／13／16 秒
+    labels:["霹靂一閃","稻魂","聚蚊成雷","遠雷","熱界雷"],
+    fullNames:["壹之型・霹靂一閃","貳之型・稻魂","參之型・聚蚊成雷","肆之型・遠雷","伍之型・熱界雷"],
+    atkEvo:18, // Lv18 陸之型・電轟雷轟：普攻雷光化
+    short:1, // 短髮：立繪與小人不畫長馬尾
+    accent:"#ffe14d",eye:"#c8860a",eyeHi:"#ffd97a",
+    suit:"#2b2620",belt:"#e8e3d8",haori:"#e0912a",coat:"#e0912a",coatS:"#b06a1a",
+    hair:{d:"#c8860a",m:"#f2c230",l:"#ffe680"},
+    cover:{glow:"244,201,58",accent:"#ffd23f",arcHi:"rgba(255,236,158,0.85)",scarf:"#e8e3d8",base:"#c8860a",
+      coatA:"#c97f1d",coatB:"#6e4310",arm:"#8a5c14",lightning:1,tri:1,
+      ribbons:["#8a6a10","#d4a017","#b8860b","#e8b420","#f4c93a","#e0912a","#ffd95e"],
+      ahoge:"#ffd95e",bangs:"#e0b322",brow:"#8a6a10",eye:"#e8a020",eyeGlow:"#ffb020"}
+  }
+};
+let curChar="eris";
+const CH=()=>CHARS[curChar];
 // ============ 狀態 ============
-const ULT_CDS=[480,720,1080]; // 無音 8 秒／光太刀 12 秒／光返し 18 秒
-const ULT_REQ=[5,10,15];      // 各招習得等級
 const G={running:false,floor:1,hitstop:0,shake:0,shakeX:0,shakeY:0,time:0,clearTimer:0,flash:0,
   diff:0,unlockedDiff:0,bestFloor:0};
 const player={
@@ -269,15 +351,16 @@ const player={
   lvl:1,exp:0,expNext:30,atkMul:1,swordTier:0,armorTier:0,
   atkQueue:false,combo:0,comboWindow:0,atkTimer:0,atkCd:0,atkAng:0,
   dashQueue:false,dashDir:null,dashTimer:0,dashCd:0,inv:0,
-  ultQueue:0,ultCds:[0,0,0],hurtFlash:0,trail:[],walk:0
+  ultQueue:0,ultCds:[0,0,0,0,0],hurtFlash:0,trail:[],walk:0
 };
 let enemies=[],particles=[],dmgNums=[],slashes=[],orbs=[],drops=[],bullets=[],hazards=[],stairs=null,boss=null;
 addEventListener("resize",resize);resize();
 let comboCount=0,comboFade=0;
 function queueAttack(){if(G.running)player.atkQueue=true;}
 function queueDash(dir){if(G.running){player.dashQueue=true;player.dashDir=dir||null;}}
-function queueUlt(t){ // t=1 無音／2 光太刀／3 光返し，各自獨立冷卻
-  if(G.running&&!G.ultSeq&&player.lvl>=ULT_REQ[t-1]&&player.ultCds[t-1]<=0)player.ultQueue=t;
+function queueUlt(t){ // 依當前角色招式表檢查等級與冷卻，各招獨立
+  const C=CH();
+  if(G.running&&!G.ultSeq&&t<=C.nU&&player.lvl>=C.reqs[t-1]&&player.ultCds[t-1]<=0)player.ultQueue=t;
 }
 const atkPower=()=>player.atkMul*(1+player.swordTier*0.15); // 攻擊力成長 × 劍強化加成
 const ATK_LIGHT=11,ATK_HEAVY=22; // 普攻基礎傷害（輕斬／三段重斬）
@@ -411,7 +494,7 @@ function updatePlayer(){
   p.dashQueue=false;p.dashDir=null;
   if(p.dashCd>0)p.dashCd--;
   if(p.inv>0)p.inv--;
-  for(let i=0;i<3;i++)if(p.ultCds[i]>0)p.ultCds[i]--;
+  for(let i=0;i<5;i++)if(p.ultCds[i]>0)p.ultCds[i]--;
 
   if(p.dashTimer>0){p.dashTimer--;p.trail.push({x:p.x,y:p.y,life:10});}
   else{
@@ -479,9 +562,9 @@ function gainExp(v){
     p.lvl++;p.atkMul+=0.08;p.maxhp+=8;p.hp=Math.min(p.maxhp,p.hp+p.maxhp*0.3);
     $("lvTag").textContent=p.lvl;
     dmgNum(p.x,p.y-20,0,true,"LEVEL UP");
-    if(p.lvl===5)dmgNum(p.x,p.y-36,0,true,"習得奧義・無音之太刀");
-    if(p.lvl===10)dmgNum(p.x,p.y-36,0,true,"奧義進化・光之太刀");
-    if(p.lvl===15)dmgNum(p.x,p.y-36,0,true,"奧義極致・光返し");
+    const C=CH();
+    for(let i=0;i<C.nU;i++)if(p.lvl===C.reqs[i])dmgNum(p.x,p.y-36,0,true,"習得 "+C.fullNames[i]);
+    if(C.atkEvo&&p.lvl===C.atkEvo)dmgNum(p.x,p.y-36,0,true,"普攻進化・陸之型 電轟雷轟");
     burst(p.x,p.y,"#7fd0ff",20,6);shake(4);buzz(40);
     saveGame();
   }
@@ -505,10 +588,12 @@ function doSlash(third){
   const ang=target?Math.atan2(target.y-p.y,target.x-p.x):(p.face>0?0:Math.PI);
   if(Math.abs(Math.cos(ang))>0.2)p.face=Math.cos(ang)>0?1:-1;
   p.atkAng=ang;
-  const baseDmg=(third?ATK_HEAVY:ATK_LIGHT)*atkPower();
-  slashArc(p.x+Math.cos(ang)*18,p.y+Math.sin(ang)*18,ang,range,third?"#ffd166":"#ff8c42");
+  const evo=CH().atkEvo&&p.lvl>=CH().atkEvo; // 陸之型・電轟雷轟：普攻雷光化
+  const baseDmg=(third?ATK_HEAVY:ATK_LIGHT)*atkPower()*(evo?1.4:1);
+  slashArc(p.x+Math.cos(ang)*18,p.y+Math.sin(ang)*18,ang,range,evo?"#ffe14d":third?"#ffd166":"#ff8c42");
   if(third)shake(7);
   let hitAny=false;
+  const chained=new Set(); // 連鎖閃電同一揮不重複跳
   for(const e of enemies){
     if(e.dead)continue;
     const dx=e.x-p.x,dy=e.y-p.y,d=Math.hypot(dx,dy);
@@ -522,20 +607,46 @@ function doSlash(third){
         e.hp-=dmg;e.flash=6;
         const kb=(third?9:4.5)*((e.type==="boss"||e.type==="prism")?0.25:1);
         e.kbx+=Math.cos(ea)*kb;e.kby+=Math.sin(ea)*kb;
-        burst(e.x,e.y,crit?"#ffd166":"#ff8c42",crit?14:8,crit?6:4);
+        burst(e.x,e.y,evo?"#ffe14d":crit?"#ffd166":"#ff8c42",crit?14:8,crit?6:4);
         dmgNum(e.x,e.y,dmg,crit);
         comboCount++;comboFade=90;
         if(e.hp<=0)killEnemy(e);
+        if(evo){ // 雷光連鎖：跳向附近至多兩個敵人
+          let n=0;
+          for(const o of enemies){
+            if(n>=2)break;
+            if(o===e||o.dead||chained.has(o))continue;
+            if(dist2(e,o)<130*130){
+              chained.add(o);n++;
+              const cdm=baseDmg*0.45*rnd(0.9,1.1);
+              o.hp-=cdm;o.flash=6;
+              ultTrails.push({x1:e.x,y1:e.y,x2:o.x,y2:o.y,life:14,max:14,rgb:"255,225,77"});
+              dmgNum(o.x,o.y,cdm,false);
+              if(o.hp<=0)killEnemy(o);
+            }
+          }
+        }
       }
     }
+  }
+  if(evo&&third){ // 第三段雷爆：以自身為中心的雷擊圈
+    for(const o of enemies){
+      if(o.dead||dist2(p,o)>=130*130)continue;
+      const dmg2=baseDmg*0.5*rnd(0.9,1.1);
+      o.hp-=dmg2;o.flash=6;hitAny=true;
+      dmgNum(o.x,o.y,dmg2,false);burst(o.x,o.y,"#ffe14d",6,4);
+      if(o.hp<=0)killEnemy(o);
+    }
+    slashArc(p.x,p.y,0,110,"#ffe14d");slashArc(p.x,p.y,3.14,110,"#ffe14d");
   }
   if(hitAny){hitstop(third?7:3);shake(third?8:3);buzz(third?30:12);}
 }
 // 奧義：光之太刀（時停 → 蓄力 → 瞬身連斬 → 收劍後一齊結算）
 let ultTrails=[];
-function doUlt(tier){ // 1 無音之太刀 / 2 光之太刀 / 3 光返し
+function doUlt(tier){ // 艾莉絲：1 無音之太刀 / 2 光之太刀 / 3 光返し；善逸走 doThunder
+  if(curChar==="zenitsu")return doThunder(tier);
   const p=player;
-  p.ultCds[tier-1]=ULT_CDS[tier-1];
+  p.ultCds[tier-1]=CHARS.eris.cds[tier-1];
   const R=260*(1+p.swordTier*0.08);
   const path=[];let cur={x:p.x,y:p.y};
   let targets=[];
@@ -594,6 +705,91 @@ function doUlt(tier){ // 1 無音之太刀 / 2 光之太刀 / 3 光返し
   p.inv=999; // 全程無敵，結束時歸還
   buzz(20);
 }
+// 善逸的雷之呼吸：壹・伍走時停瞬身演出，貳參肆為即發技
+function doThunder(t){
+  const p=player,C=CHARS.zenitsu;
+  p.ultCds[t-1]=C.cds[t-1];
+  const heavy=ATK_HEAVY*atkPower();
+  const rB=1+p.swordTier*0.08;
+  if(t===1){ // 壹之型・霹靂一閃：神速直線居合，斬擊直線上所有敵人
+    const alive=enemies.filter(e=>!e.dead).sort((a,b)=>dist2(player,a)-dist2(player,b));
+    const aim=alive[0];
+    const a=aim?Math.atan2(aim.y-p.y,aim.x-p.x):(p.face>0?0:Math.PI);
+    const end={x:clamp(p.x+Math.cos(a)*320,26,W-26),y:clamp(p.y+Math.sin(a)*320,TOP+6,H-30)};
+    const targets=enemies.filter(e=>!e.dead&&segDist(e.x,e.y,p.x,p.y,end.x,end.y)<e.r+28);
+    G.ultSeq={phase:"charge",t:10,path:[{x1:p.x,y1:p.y,x2:end.x,y2:end.y,targets}],
+      idx:0,segT:0,targets,dim:0,tier:1,thunder:1,mul:2.0,col:"#ffe14d",rgb:"255,225,77"};
+    p.inv=999;buzz(20);return;
+  }
+  if(t===5){ // 伍之型・熱界雷：瞬身斬向最強敵人，重擊＋麻痺
+    let target=null,best=-1;
+    for(const e of enemies)if(!e.dead&&e.hp>best){best=e.hp;target=e;}
+    if(!target){p.ultCds[t-1]=60;return;} // 沒目標只進 1 秒短冷卻
+    const a=Math.atan2(target.y-p.y,target.x-p.x);
+    const end={x:clamp(target.x+Math.cos(a)*46,26,W-26),y:clamp(target.y+Math.sin(a)*46,TOP+6,H-30)};
+    G.ultSeq={phase:"charge",t:18,path:[{x1:p.x,y1:p.y,x2:end.x,y2:end.y,targets:[target]}],
+      idx:0,segT:0,targets:[target],dim:0,tier:5,thunder:1,mul:5.0,col:"#ffec9e",rgb:"255,236,158",stun:110};
+    p.inv=999;buzz(25);return;
+  }
+  let hits=0;
+  if(t===2){ // 貳之型・稻魂：正面扇形五連斬
+    const range=150*rB,arcW=2.6;
+    const target=nearestEnemy(320);
+    const a=target?Math.atan2(target.y-p.y,target.x-p.x):(p.face>0?0:Math.PI);
+    if(Math.abs(Math.cos(a))>0.2)p.face=Math.cos(a)>0?1:-1;
+    p.atkAng=a;p.atkTimer=12;
+    for(const e of enemies){
+      if(e.dead)continue;
+      const dx=e.x-p.x,dy=e.y-p.y,d=Math.hypot(dx,dy);
+      if(d>range+e.r)continue;
+      const ea=Math.atan2(dy,dx);
+      const diff=Math.abs(((ea-a)+Math.PI*3)%(Math.PI*2)-Math.PI);
+      if(diff<arcW/2||d<50){
+        const dmg=heavy*1.6*rnd(0.9,1.1);
+        e.hp-=dmg;e.flash=8;hits++;
+        e.kbx+=Math.cos(ea)*8;e.kby+=Math.sin(ea)*8;
+        burst(e.x,e.y,"#ffe14d",10,5);dmgNum(e.x,e.y,dmg,true);
+        if(e.hp<=0)killEnemy(e);
+      }
+    }
+    for(let i=0;i<5;i++)
+      slashArc(p.x+Math.cos(a)*(26+i*24),p.y+Math.sin(a)*(26+i*24),a+(i-2)*0.14,58,"#ffe14d");
+    if(hits){hitstop(6);shake(9);}buzz(30);
+  }else if(t===3){ // 參之型・聚蚊成雷：迴旋斬，震碎周圍彈幕
+    const R=165*rB;
+    for(const b of bullets)if(dist2(b,p)<(R+20)**2){burst(b.x,b.y,"#ffe14d",3,3);b.life=0;}
+    bullets=bullets.filter(b=>b.life>0);
+    for(const e of enemies){
+      if(e.dead)continue;
+      if(dist2(p,e)>=(R+e.r)**2)continue;
+      const ea=Math.atan2(e.y-p.y,e.x-p.x);
+      const dmg=heavy*1.8*rnd(0.9,1.1);
+      e.hp-=dmg;e.flash=8;hits++;
+      e.kbx+=Math.cos(ea)*9;e.kby+=Math.sin(ea)*9;
+      burst(e.x,e.y,"#ffe14d",10,5);dmgNum(e.x,e.y,dmg,true);
+      if(e.hp<=0)killEnemy(e);
+    }
+    for(let i=0;i<8;i++){const a2=i/8*Math.PI*2;
+      slashArc(p.x+Math.cos(a2)*70,p.y+Math.sin(a2)*70,a2+1.57,60,"#ffe14d");}
+    p.inv=Math.max(p.inv,18);
+    if(hits){hitstop(6);shake(10);}buzz(35);G.flash=4;
+  }else if(t===4){ // 肆之型・遠雷：落雷狙擊全場最遠的敵人，震碎落點彈幕
+    const targs=enemies.filter(e=>!e.dead).sort((a,b)=>dist2(player,b)-dist2(player,a)).slice(0,6);
+    if(targs.length===0){p.ultCds[t-1]=60;return;}
+    for(const e of targs){
+      ultTrails.push({x1:e.x+rnd(-6,6),y1:e.y-250,x2:e.x,y2:e.y,life:26,max:26,rgb:"255,241,118"});
+      const dmg=heavy*2.2*rnd(0.9,1.1);
+      e.hp-=dmg;e.flash=10;hits++;
+      burst(e.x,e.y,"#ffe14d",14,6);burst(e.x,e.y,"#fff",6,5);
+      dmgNum(e.x,e.y,dmg,true);
+      for(const b of bullets)if(dist2(b,e)<80*80)b.life=0;
+      if(e.hp<=0)killEnemy(e);
+    }
+    bullets=bullets.filter(b=>b.life>0);
+    hitstop(6);shake(12);G.flash=6;buzz([30,30,50]);
+  }
+  comboCount+=hits;comboFade=90;
+}
 function updateUltSeq(){
   const s=G.ultSeq,p=player;
   if(s.phase==="charge"){ // 時間停止，光粒聚集
@@ -602,7 +798,7 @@ function updateUltSeq(){
       const a=rnd(0,6.28),r=rnd(60,110);
       particles.push({x:p.x+Math.cos(a)*r,y:p.y+Math.sin(a)*r,
         vx:-Math.cos(a)*3.4,vy:-Math.sin(a)*3.4,life:16,max:16,
-        color:s.tier===1?"#cfd6dd":"#ffd166",size:3});
+        color:s.col||(s.tier===1?"#cfd6dd":"#ffd166"),size:3});
     }
     if(--s.t<=0){s.phase="dash";s.segT=0;buzz(15);}
   }else if(s.phase==="dash"){ // 沿路徑瞬身，每段 5 幀
@@ -616,7 +812,7 @@ function updateUltSeq(){
       if(!t.dead)burst(t.x,t.y,"#fff",5,4); // 掠過的火花，傷害還沒發生
     if(s.segT>=5){
       ultTrails.push({x1:seg.x1,y1:seg.y1,x2:seg.x2,y2:seg.y2,life:40,max:40,
-        rgb:s.tier===1?"207,214,221":seg.ret?"255,255,255":"255,209,102"}); // 無音銀白／去程金光／返程純白
+        rgb:s.rgb||(s.tier===1?"207,214,221":seg.ret?"255,255,255":"255,209,102")}); // 無音銀白／去程金光／返程純白／雷之呼吸金雷
       s.idx++;s.segT=0;
       if(s.idx>=s.path.length){s.phase="sheath";s.t=20;}
     }
@@ -624,8 +820,8 @@ function updateUltSeq(){
     if(--s.t<=0){
       s.phase="strike";
       // 一齊裂開
-      const dmgBase=ATK_HEAVY*atkPower()*ULT_MUL[s.tier]; // 奧義=重斬傷害×倍率，隨攻擊力與劍加成成長
-      const col=s.tier===1?"#cfd6dd":"#ffd166";
+      const dmgBase=ATK_HEAVY*atkPower()*(s.mul||ULT_MUL[s.tier]); // 奧義=重斬傷害×倍率，隨攻擊力與劍加成成長
+      const col=s.col||(s.tier===1?"#cfd6dd":"#ffd166");
       let hits=0,kills=0;
       for(const seg of s.path){
         if(!seg.targets)continue;
@@ -638,9 +834,11 @@ function updateUltSeq(){
           burst(e.x,e.y,"#fff",8,6);
           dmgNum(e.x,e.y,dmg,true);
           if(e.hp<=0){kills++;killEnemy(e);}
+          else if(s.stun)e.stun=Math.max(e.stun||0, // 熱界雷麻痺：頭目減半
+            (BOSS_TYPES.includes(e.type)||e.type==="fang")?Math.round(s.stun*0.5):s.stun);
         }
       }
-      if(s.tier===3){ // 返照終結：斬滅全場彈幕 + 十字光刃追擊 + 擊殺回轉冷卻
+      if(s.tier===3&&!s.thunder){ // 返照終結：斬滅全場彈幕 + 十字光刃追擊 + 擊殺回轉冷卻
         for(const b of bullets)burst(b.x,b.y,"#ffd166",3,3);
         bullets=[];
         const R2=150*(1+p.swordTier*0.08);
@@ -719,6 +917,13 @@ function updateEnemies(){
     e.wobble+=0.12;
     if(e.flash>0)e.flash--;
     e.x+=e.kbx;e.y+=e.kby;e.kbx*=0.82;e.kby*=0.82;
+    if(e.stun>0){ // 麻痺：停止行動與攻擊，仍可被打
+      e.stun--;
+      e.x=clamp(e.x,20,W-20);e.y=clamp(e.y,TOP,H-24);
+      if(G.time%6===0)particles.push({x:e.x+rnd(-e.r,e.r),y:e.y+rnd(-e.r,e.r),
+        vx:0,vy:-0.4,life:12,max:12,color:"#ffe14d",size:2});
+      continue;
+    }
     const dx=p.x-e.x,dy=p.y-e.y,d=Math.hypot(dx,dy)||1;
 
     if(e.type==="boss")updateBoss(e,dx,dy,d);
@@ -1170,7 +1375,7 @@ function drawPlayer(){
   cx.save();cx.translate(p.x,p.y);cx.scale(ds,ds);cx.translate(-p.x,-p.y);
   for(const t of p.trail){
     cx.globalAlpha=t.life/10*0.35;
-    cx.fillStyle="#e23b3b";
+    cx.fillStyle=CH().accent;
     cx.beginPath();cx.arc(t.x,t.y,p.r,0,7);cx.fill();
   }
   cx.globalAlpha=1;
@@ -1183,29 +1388,46 @@ function drawPlayer(){
   cx.fillStyle="#2a2233";
   cx.fillRect(bx-6,by+8+Math.max(0,step*0.6),5,6);
   cx.fillRect(bx+1,by+8+Math.max(0,-step*0.6),5,6);
-  // 身體：戰鬥服
-  cx.fillStyle=p.hurtFlash>0?"#ffffff":"#3a2f4a";
+  // 身體：戰鬥服（善逸：深色隊服＋橘羽織側披）
+  const C=CH();
+  cx.fillStyle=p.hurtFlash>0?"#ffffff":C.suit;
   cx.fillRect(bx-7,by-4,14,14);
-  cx.fillStyle=p.hurtFlash>0?"#ffdddd":"#e23b3b"; // 腰帶
+  if(C.haori&&p.hurtFlash<=0){
+    cx.fillStyle=C.haori;
+    cx.fillRect(bx-8,by-4,4,13);cx.fillRect(bx+4,by-4,4,13);
+    cx.fillStyle="#fff"; // 羽織白三角紋
+    cx.fillRect(bx-7,by,2,2);cx.fillRect(bx+5,by+3,2,2);
+  }
+  cx.fillStyle=p.hurtFlash>0?"#ffdddd":C.belt; // 腰帶
   cx.fillRect(bx-7,by+6,14,3);
   // 頭
   cx.fillStyle=p.hurtFlash>0?"#ffffff":"#f2d0b8";
   cx.fillRect(bx-6,by-16,12,12);
-  // 長紅髮：頂部 + 飄動髮尾
+  // 髮：頂部 + 飄動髮尾
   const sway=Math.sin(G.time*0.1)*2+(p.vx*-1.2);
-  cx.fillStyle=p.hurtFlash>0?"#ffdddd":"#d63a3a";
+  cx.fillStyle=p.hurtFlash>0?"#ffdddd":C.hair.m;
   cx.fillRect(bx-8,by-20,16,7);
-  cx.fillRect(bx-9,by-16,3,10);
-  cx.fillRect(bx+6,by-16,3,10);
+  const lock=C.short?5:10; // 短髮鬢角只到臉頰
+  cx.fillRect(bx-9,by-16,3,lock);
+  cx.fillRect(bx+6,by-16,3,lock);
+  if(C.short){ // 刺蝟短髮：頭頂外翹髮刺
+    cx.fillRect(bx-10,by-22,3,4);cx.fillRect(bx+7,by-22,3,4);
+    cx.fillRect(bx-5,by-23,3,3);cx.fillRect(bx+3,by-23,3,3);
+  }
   cx.fillRect(bx-1,by-24,2,4);cx.fillRect(bx+p.face,by-26,2,3); // 呆毛
-  // 後方大馬尾
-  cx.beginPath();
-  cx.moveTo(bx-p.face*4,by-18);
-  cx.quadraticCurveTo(bx-p.face*14+sway,by-8,bx-p.face*11+sway*1.6,by+8);
-  cx.quadraticCurveTo(bx-p.face*7,by-2,bx-p.face*5,by-14);
-  cx.closePath();cx.fill();
-  // 兇悍紅眼
-  cx.fillStyle="#b3242c";
+  if(C.short){ // 善逸：及肩亂翹短髮
+    cx.beginPath();cx.moveTo(bx-p.face*7,by-16);
+    cx.lineTo(bx-p.face*12+sway*0.6,by-6);cx.lineTo(bx-p.face*5,by-8);
+    cx.closePath();cx.fill();
+  }else{ // 艾莉絲：後方大馬尾
+    cx.beginPath();
+    cx.moveTo(bx-p.face*4,by-18);
+    cx.quadraticCurveTo(bx-p.face*14+sway,by-8,bx-p.face*11+sway*1.6,by+8);
+    cx.quadraticCurveTo(bx-p.face*7,by-2,bx-p.face*5,by-14);
+    cx.closePath();cx.fill();
+  }
+  // 眼
+  cx.fillStyle=C.eye;
   cx.fillRect(bx+(p.face>0?1:-4),by-12,3,3);
   // 劍
   const swing=p.atkTimer>0;
@@ -1474,22 +1696,23 @@ function updateFx(){
   const tag=$("comboTag");
   tag.style.opacity=comboCount>1?1:0;
   tag.textContent=comboCount+" COMBO";
-  // 三招奧義各自的按鈕狀態：鎖定／冷卻環形倒數／就緒
-  const ULT_UI=[["btnU1","無音太刀"],["btnU2","光太刀"],["btnU3","光返し"]];
-  for(let i=0;i<3;i++){
-    const btn=$(ULT_UI[i][0]),lbl=$(ULT_UI[i][0]+"L"),mask=$(ULT_UI[i][0]+"M");
-    if(player.lvl<ULT_REQ[i]){
+  // 奧義按鈕狀態：鎖定／冷卻環形倒數／就緒（依角色招式表）
+  const C=CH();
+  for(let i=0;i<C.nU;i++){
+    const id="btnU"+(i+1);
+    const btn=$(id),lbl=$(id+"L"),mask=$(id+"M");
+    if(player.lvl<C.reqs[i]){
       mask.style.background="rgba(0,0,0,0.5)";
-      lbl.innerHTML=`Lv${ULT_REQ[i]}<br>解鎖`;
+      lbl.innerHTML=`Lv${C.reqs[i]}<br>解鎖`;
       btn.classList.add("cd","lock");
     }else if(player.ultCds[i]>0){
-      const frac=player.ultCds[i]/ULT_CDS[i];
+      const frac=player.ultCds[i]/C.cds[i];
       mask.style.background=`conic-gradient(rgba(0,0,0,0.78) ${frac*360}deg, transparent ${frac*360}deg)`;
       lbl.textContent=Math.ceil(player.ultCds[i]/60);
       btn.classList.add("cd");btn.classList.remove("lock");
     }else{
       mask.style.background="none";
-      lbl.textContent=ULT_UI[i][1];
+      lbl.textContent=C.labels[i];
       btn.classList.remove("cd","lock");
     }
   }
@@ -1557,31 +1780,70 @@ function render(){
 
 // ============ 開始 / 結束 ============
 const overlay=$("overlay");
-// ============ 本地存檔（localStorage）：等級與裝備關頁不失 ============
-const SAVE_KEY="gurenkenki_save_v1";
+// ============ 本地存檔（localStorage）：等級各角色獨立、裝備共享 ============
+const SAVE_KEY="gurenkenki_save_v2";
+let SAVE={char:"eris",unlockedDiff:0,diffSel:0,swordTier:0,armorTier:0,chars:{}};
+function charSnap(){return{lvl:player.lvl,exp:player.exp,expNext:player.expNext,
+  atkMul:player.atkMul,bestFloor:G.bestFloor||0,runFloor:G.runFloor||0};}
 function saveGame(){
-  try{
-    localStorage.setItem(SAVE_KEY,JSON.stringify({
-      lvl:player.lvl,exp:player.exp,expNext:player.expNext,atkMul:player.atkMul,
-      maxhp:player.maxhp,swordTier:player.swordTier,armorTier:player.armorTier,
-      bestFloor:G.bestFloor||0,unlockedDiff:G.unlockedDiff||0,diffSel:G.diff||0,
-      runFloor:G.runFloor||0
-    }));
-  }catch(e){} // 私密模式等情況下靜默失敗，不影響遊戲
+  SAVE.char=curChar;SAVE.unlockedDiff=G.unlockedDiff||0;SAVE.diffSel=G.diff||0;
+  SAVE.swordTier=player.swordTier;SAVE.armorTier=player.armorTier;
+  SAVE.chars[curChar]=charSnap();
+  try{localStorage.setItem(SAVE_KEY,JSON.stringify(SAVE));}catch(e){} // 私密模式等情況下靜默失敗
 }
 function loadGame(){
   try{
-    const d=JSON.parse(localStorage.getItem(SAVE_KEY));
+    let d=JSON.parse(localStorage.getItem(SAVE_KEY));
+    if(!d){ // 從 v1 舊檔搬移（單角色時代 → 艾莉絲）
+      const o=JSON.parse(localStorage.getItem("gurenkenki_save_v1"));
+      if(o)d={char:"eris",unlockedDiff:o.unlockedDiff||0,diffSel:o.diffSel||0,
+        swordTier:o.swordTier||0,armorTier:o.armorTier||0,
+        chars:{eris:{lvl:o.lvl||1,exp:o.exp||0,expNext:o.expNext||30,atkMul:o.atkMul||1,
+          bestFloor:o.bestFloor||0,runFloor:o.runFloor||0}}};
+    }
     if(!d)return;
-    player.lvl=d.lvl||1;player.exp=d.exp||0;player.expNext=d.expNext||30;
-    player.atkMul=d.atkMul||1;player.maxhp=d.maxhp||100;player.hp=player.maxhp;
-    player.swordTier=d.swordTier||0;player.armorTier=d.armorTier||0;
-    G.bestFloor=d.bestFloor||0;
-    G.unlockedDiff=d.unlockedDiff||0;
-    G.diff=Math.min(d.diffSel||0,G.unlockedDiff);
-    G.runFloor=d.runFloor||0;
+    SAVE=Object.assign(SAVE,d);SAVE.chars=SAVE.chars||{};
+    G.unlockedDiff=SAVE.unlockedDiff||0;
+    G.diff=Math.min(SAVE.diffSel||0,G.unlockedDiff);
+    player.swordTier=SAVE.swordTier||0;player.armorTier=SAVE.armorTier||0;
+    if(!CHARS[SAVE.char])SAVE.char="eris";
+    curChar=SAVE.char;
   }catch(e){}
 }
+function applyChar(c){ // 套用角色的獨立進度；血量上限＝等級成長＋共享甲加成
+  curChar=c;
+  const d=SAVE.chars[c]||{};
+  player.lvl=d.lvl||1;player.exp=d.exp||0;player.expNext=d.expNext||30;
+  player.atkMul=d.atkMul||1;
+  player.maxhp=100+(player.lvl-1)*8+player.armorTier*12;player.hp=player.maxhp;
+  G.bestFloor=d.bestFloor||0;G.runFloor=d.runFloor||0;
+  document.body.classList.toggle("ch5",CHARS[c].nU>3);
+  $("coverCv").classList.toggle("left",!!CHARS[c].short); // 善逸立繪靠左
+  $("helpEris").classList.toggle("hidden",c!=="eris"); // 操作說明只顯示當前角色的招式表
+  $("helpZen").classList.toggle("hidden",c!=="zenitsu");
+  $("ovEyebrow").textContent=CHARS[c].eyebrow;
+  $("ovSub").innerHTML=CHARS[c].sub;
+  const deco=$("slashDeco"); // 首頁光痕：艾莉絲赤紅斬痕／善逸金雷光痕
+  if(CHARS[c].short){
+    deco.style.background="linear-gradient(90deg,transparent,#f2c230 30%,#fff 50%,#f2c230 70%,transparent)";
+    deco.style.boxShadow="0 0 24px rgba(244,201,58,.8)";
+  }else{
+    deco.style.background="linear-gradient(90deg,transparent,var(--crimson) 30%,#fff 50%,var(--crimson) 70%,transparent)";
+    deco.style.boxShadow="0 0 24px rgba(226,59,59,.8)";
+  }
+  $("charTag").textContent=CHARS[c].name;
+  $("lvTag").textContent=player.lvl;
+  $("equipTag").textContent=`劍 +${player.swordTier}・甲 +${player.armorTier}`;
+  updateRecordTag();updateStartBtn();updateCharRow();
+}
+function updateCharRow(){
+  document.querySelectorAll(".charBtn").forEach(b=>b.classList.toggle("sel",b.dataset.c===curChar));
+}
+document.querySelectorAll(".charBtn").forEach(b=>b.addEventListener("click",()=>{
+  if(b.dataset.c===curChar)return;
+  SAVE.chars[curChar]=charSnap(); // 先收好目前角色的進度再切換
+  applyChar(b.dataset.c);saveGame();
+}));
 function updateStartBtn(){
   $("startBtn").textContent=G.runFloor>=2?`繼續試煉・地下 ${G.runFloor} 層`:"開始試煉";
 }
@@ -1603,14 +1865,14 @@ function updateRecordTag(){
   $("recordTag").innerHTML=G.bestFloor>0
     ?`最深紀錄：地下 ${G.bestFloor} 層・Lv ${player.lvl}・劍 +${player.swordTier} 甲 +${player.armorTier}`:"";
 }
-loadGame();updateRecordTag();updateDiffRow();updateStartBtn();
+loadGame();applyChar(curChar);updateDiffRow();
 let wipeArm=0;
 $("wipeBtn").addEventListener("click",()=>{
   if(!wipeArm){
     wipeArm=1;$("wipeBtn").textContent="確定清除？";
     setTimeout(()=>{wipeArm=0;$("wipeBtn").textContent="清除紀錄";},2500);
   }else{
-    try{localStorage.removeItem(SAVE_KEY);}catch(e){}
+    try{localStorage.removeItem(SAVE_KEY);localStorage.removeItem("gurenkenki_save_v1");}catch(e){}
     location.reload();
   }
 });
@@ -1620,17 +1882,22 @@ function drawHero(t){
   hcx.clearRect(0,0,80,100);
   const sway=Math.sin(t*0.045);
   const R=(x,y,w,h,c)=>{hcx.fillStyle=c;hcx.fillRect(Math.round(x),Math.round(y),Math.ceil(w),Math.ceil(h));};
-  const hairD="#a12626",hair="#d63a3a",hairL="#ef5f4f";
+  const C=CH();
+  const hairD=C.hair.d,hair=C.hair.m,hairL=C.hair.l;
   const skin="#f2d0b8",skinS="#dcae92";
-  const coat="#e8e3d8",coatS="#c9c2b0",dark="#241d30",suit="#3a2f4a";
-  const red="#e23b3b",gold="#ffd166",steel="#cfd6dd",grip="#8a5a2b";
+  const coat=C.coat,coatS=C.coatS,dark="#241d30",suit=C.suit;
+  const red=C.accent,gold="#ffd166",steel="#cfd6dd",grip="#8a5a2b";
   // 地面影
   hcx.fillStyle="rgba(0,0,0,0.4)";
   hcx.beginPath();hcx.ellipse(40,77,17,3.2,0,0,7);hcx.fill();
-  // 狂野大紅髮（後層，隨風飄動，垂到腰際以下）
-  const tail=[[27,8,12,7,hairD],[22,13,13,8,hair],[18,19,13,9,hairD],[15,26,12,10,hair],
-    [13,34,11,10,hairD],[12,44,10,10,hair],[12,54,9,10,hairD],[13,63,8,9,hair],[15,71,7,6,hairL],
-    [48,12,6,8,hairD],[50,18,5,9,hair],[51,26,5,9,hairD],[52,34,4,8,hair]];
+  // 後層頭髮：艾莉絲垂腰長髮／善逸往上外炸開的刺蝟短髮
+  const tail=C.short
+    ?[[28,7,6,5,hairD],[24,11,6,5,hair],[26,16,5,4,hairL],
+      [50,7,6,5,hairD],[54,11,5,5,hair],[52,16,5,4,hairL],
+      [30,1,5,5,hair],[38,-1,5,5,hairL],[45,1,5,5,hair]]
+    :[[27,8,12,7,hairD],[22,13,13,8,hair],[18,19,13,9,hairD],[15,26,12,10,hair],
+      [13,34,11,10,hairD],[12,44,10,10,hair],[12,54,9,10,hairD],[13,63,8,9,hair],[15,71,7,6,hairL],
+      [48,12,6,8,hairD],[50,18,5,9,hair],[51,26,5,9,hairD],[52,34,4,8,hair]];
   tail.forEach((s,i)=>R(s[0]+sway*(i%9*0.45),s[1],s[2],s[3],s[4]));
   // 左臂（身後持鞘）與刀鞘
   R(32,31,4,9,dark);
@@ -1641,9 +1908,10 @@ function drawHero(t){
   R(37,52,5,13,"#1c1826");R(43,52,5,15,"#1c1826");
   R(36,63,6,6,"#4a3626");R(42,65,6,6,"#4a3626");
   R(35,68,7,4,"#33251a");R(41,70,7,4,"#33251a");
-  // 軀幹：白外套＋黑內裏、肩甲、腰帶
+  // 軀幹：外套＋內裏、肩甲、腰帶（善逸羽織帶白三角紋）
   R(35,28,14,17,coat);R(46,28,3,17,coatS);
   R(40,28,4,17,suit); // 內裏
+  if(C.haori){R(36,31,2,2,"#fff");R(45,35,2,2,"#fff");R(37,40,2,2,"#fff");}
   R(34,27,5,5,dark);R(46,27,5,5,dark);
   R(35,42,14,2,red);R(35,44,14,3,dark);R(40,44,4,2,gold);
   // 黑色頸環
@@ -1652,12 +1920,12 @@ function drawHero(t){
   R(40,23,5,3,skinS);
   R(36,13,12,11,skin);R(46,13,2,11,skinS);
   R(42,15,6,1,hairD); // 壓低的眉
-  R(43,16,4,3,"#b3242c");R(44,17,2,1,"#ff6a5e"); // 紅眼＋亮點
+  R(43,16,4,3,C.eye);R(44,17,2,1,C.eyeHi); // 眼＋亮點
   R(44,21,2,1,skinS);
   // 頭髮、瀏海與呆毛
   R(33,6,16,6,hair);R(32,9,18,3,hairD);
   R(33,12,4,6,hair);R(37,12,3,6,hairD);R(41,12,3,4,hair);R(45,11,4,6,hair);
-  R(33,13,3,13,hair);R(48,11,3,9,hairD);
+  R(33,13,3,C.short?8:13,hair);R(48,11,3,C.short?7:9,hairD); // 短髮鬢角只到下巴
   R(35,6,6,2,hairL);
   R(39,2,2,3,hair);R(41,1,2,2,hairL);R(38,4,2,2,hairD); // 呆毛
   // 右臂與刀（斜指天際）：白袖＋黑袖口
@@ -1687,22 +1955,42 @@ function drawHero(t){
 // ============ 封面主視覺（平滑向量風） ============
 const coverC=$("coverCv"),ccx=coverC.getContext("2d");
 function drawCover(t){
+  if(CH().short)return drawCoverZen(t); // 善逸：正面立姿專屬構圖
+  const cp=CH().cover,shortHair=CH().short;
   ccx.clearRect(0,0,360,460);
   const sw=Math.sin(t*0.03),sw2=Math.sin(t*0.021+2);
-  // 背景紅色光暈與斬痕光弧
+  // 背景光暈
   let g=ccx.createRadialGradient(210,200,20,210,200,230);
-  g.addColorStop(0,"rgba(226,59,59,0.16)");g.addColorStop(1,"rgba(0,0,0,0)");
+  g.addColorStop(0,`rgba(${cp.glow},0.16)`);g.addColorStop(1,"rgba(0,0,0,0)");
   ccx.fillStyle=g;ccx.fillRect(0,0,360,460);
-  ccx.save();
-  ccx.shadowColor="#e23b3b";ccx.shadowBlur=26;
-  ccx.strokeStyle="rgba(226,59,59,0.4)";ccx.lineWidth=13;
-  ccx.beginPath();ccx.arc(200,235,185,-1.05,0.75);ccx.stroke();
-  ccx.strokeStyle="rgba(255,150,120,0.8)";ccx.lineWidth=3;
-  ccx.beginPath();ccx.arc(200,235,185,-1.05,0.75);ccx.stroke();
-  ccx.restore();
-  // 身體：背影大衣
+  if(cp.lightning){ // 善逸：鋸齒閃電劈落
+    ccx.save();
+    ccx.shadowColor=cp.accent;ccx.shadowBlur=22;
+    for(let k=0;k<2;k++){
+      const x0=76+k*196,seed=k*3.7,ph=Math.floor(t*0.02);
+      ccx.strokeStyle=k?`rgba(${cp.glow},0.5)`:"rgba(255,255,255,0.7)";
+      ccx.lineWidth=k?5:3;
+      ccx.beginPath();ccx.moveTo(x0,8);
+      let px=x0,py=8;
+      for(let i=1;i<=6;i++){
+        px+=Math.sin(seed+i*2.1+ph)*38;py+=66;
+        ccx.lineTo(px,py);
+      }
+      ccx.stroke();
+    }
+    ccx.restore();
+  }else{ // 艾莉絲：斬痕光弧
+    ccx.save();
+    ccx.shadowColor=cp.accent;ccx.shadowBlur=26;
+    ccx.strokeStyle=`rgba(${cp.glow},0.4)`;ccx.lineWidth=13;
+    ccx.beginPath();ccx.arc(200,235,185,-1.05,0.75);ccx.stroke();
+    ccx.strokeStyle=cp.arcHi;ccx.lineWidth=3;
+    ccx.beginPath();ccx.arc(200,235,185,-1.05,0.75);ccx.stroke();
+    ccx.restore();
+  }
+  // 身體：背影大衣／羽織
   g=ccx.createLinearGradient(150,180,300,460);
-  g.addColorStop(0,"#2a2333");g.addColorStop(1,"#151020");
+  g.addColorStop(0,cp.coatA);g.addColorStop(1,cp.coatB);
   ccx.fillStyle=g;
   ccx.beginPath();
   ccx.moveTo(148,205);
@@ -1711,11 +1999,22 @@ function drawCover(t){
   ccx.lineTo(112,460);
   ccx.quadraticCurveTo(122,300,148,205);
   ccx.closePath();ccx.fill();
-  // 衣領紅圍巾
-  ccx.strokeStyle="#b3242c";ccx.lineWidth=14;
+  if(cp.tri){ // 羽織白三角紋（下擺一排＋散點）
+    ccx.fillStyle="rgba(245,239,224,0.9)";
+    for(let x=126;x<308;x+=38){
+      ccx.beginPath();ccx.moveTo(x,460);ccx.lineTo(x+16,414);ccx.lineTo(x+32,460);
+      ccx.closePath();ccx.fill();
+    }
+    for(const[tx,ty,ts]of[[168,300,10],[236,268,9],[286,330,11],[148,360,9],[262,392,10],[202,342,8]]){
+      ccx.beginPath();ccx.moveTo(tx,ty);ccx.lineTo(tx+ts,ty-ts*2.2);ccx.lineTo(tx+ts*2,ty);
+      ccx.closePath();ccx.fill();
+    }
+  }
+  // 衣領圍巾
+  ccx.strokeStyle=cp.scarf;ccx.lineWidth=14;
   ccx.beginPath();ccx.moveTo(178,192);ccx.quadraticCurveTo(215,176,252,190);ccx.stroke();
   // 右臂與手
-  ccx.strokeStyle="#241d30";ccx.lineWidth=17;ccx.lineCap="round";
+  ccx.strokeStyle=cp.arm;ccx.lineWidth=17;ccx.lineCap="round";
   ccx.beginPath();ccx.moveTo(276,208);ccx.quadraticCurveTo(300,232,314,256);ccx.stroke();
   ccx.fillStyle="#e8bfa4";ccx.beginPath();ccx.arc(318,260,8,0,7);ccx.fill();
   // 武士刀（斜指右上，白刃流光）
@@ -1737,27 +2036,41 @@ function drawCover(t){
   }
   ccx.restore();
   // 頭部底髮
-  ccx.fillStyle="#a12626";
+  ccx.fillStyle=cp.base;
   ccx.beginPath();ccx.arc(206,112,44,0,7);ccx.fill();
-  // 大波浪髮流（層疊粗筆畫、彼此重疊成一片，末端延伸出畫布）
   ccx.lineCap="round";
-  const ribbons=[
-    [198,70, 48,130+sw*9,   56,480,       52,"#7e1b1b"],
-    [186,84, 70,160+sw*10,  60,470,       32,"#b32929"],
-    [220,74, 76,196+sw*12,  86,478,       44,"#a12626"],
-    [232,90, 116,248+sw2*10,134,486,      38,"#c93636"],
-    [240,102,160,272+sw*8,  180,488,      28,"#e14a3f"],
-    [226,118,192,306+sw2*9, 206,478,      16,"#8e1f1f"],
-    [210,62, 128,94+sw2*6,  96,260+sw*14, 15,"#ef644d"]
-  ];
-  for(const r of ribbons){
-    ccx.strokeStyle=r[7];ccx.lineWidth=r[6];
-    ccx.beginPath();ccx.moveTo(r[0],r[1]);
-    ccx.quadraticCurveTo(r[2],r[3],r[4],r[5]);
-    ccx.stroke();
+  if(shortHair){ // 善逸：及肩亂翹短髮，向外炸開
+    const spikes=[
+      [180,86, 138,96+sw*5,  128,132,20],[176,104,136,140+sw*6, 140,168,18],
+      [184,126,152,172+sw2*6,166,196,16],[204,140,196,186+sw*7, 204,208,17],
+      [226,132,248,178+sw2*6,262,196,16],[238,110,272,140+sw*6, 284,160,17],
+      [238,88, 276,96+sw2*5, 292,118,15],[214,64, 232,40+sw*4,  254,34,12]
+    ];
+    spikes.forEach((s,i)=>{
+      ccx.strokeStyle=cp.ribbons[i%cp.ribbons.length];ccx.lineWidth=s[6];
+      ccx.beginPath();ccx.moveTo(s[0],s[1]);
+      ccx.quadraticCurveTo(s[2],s[3],s[4],s[5]);
+      ccx.stroke();
+    });
+  }else{ // 艾莉絲：大波浪髮流（層疊粗筆畫、末端延伸出畫布）
+    const ribbons=[
+      [198,70, 48,130+sw*9,   56,480,       52],
+      [186,84, 70,160+sw*10,  60,470,       32],
+      [220,74, 76,196+sw*12,  86,478,       44],
+      [232,90, 116,248+sw2*10,134,486,      38],
+      [240,102,160,272+sw*8,  180,488,      28],
+      [226,118,192,306+sw2*9, 206,478,      16],
+      [210,62, 128,94+sw2*6,  96,260+sw*14, 15]
+    ];
+    ribbons.forEach((r,i)=>{
+      ccx.strokeStyle=cp.ribbons[i];ccx.lineWidth=r[6];
+      ccx.beginPath();ccx.moveTo(r[0],r[1]);
+      ccx.quadraticCurveTo(r[2],r[3],r[4],r[5]);
+      ccx.stroke();
+    });
   }
   // 呆毛
-  ccx.strokeStyle="#e14a3f";ccx.lineWidth=6;
+  ccx.strokeStyle=cp.ahoge;ccx.lineWidth=6;
   ccx.beginPath();ccx.moveTo(206,66);ccx.quadraticCurveTo(216+sw*3,36,232,28+sw*4);ccx.stroke();
   // 側臉（回眸的一線輪廓）
   ccx.fillStyle="#f2d0b8";
@@ -1766,23 +2079,167 @@ function drawCover(t){
   ccx.quadraticCurveTo(266,118,243,158);
   ccx.quadraticCurveTo(231,128,236,104);
   ccx.closePath();ccx.fill();
-  // 兇悍紅眼（發光）
+  // 眼（發光）
   ccx.save();
-  ccx.shadowColor="#ff3b30";ccx.shadowBlur=16;
-  ccx.fillStyle="#e13530";
+  ccx.shadowColor=cp.eyeGlow;ccx.shadowBlur=16;
+  ccx.fillStyle=cp.eye;
   ccx.beginPath();ccx.ellipse(246,122,8,4.6,-0.24,0,7);ccx.fill();
   ccx.restore();
   ccx.fillStyle="#fff";ccx.fillRect(248,118,3,3);
-  ccx.strokeStyle="#7e1b1b";ccx.lineWidth=3.6;
+  ccx.strokeStyle=cp.brow;ccx.lineWidth=3.6;
   ccx.beginPath();ccx.moveTo(236,111);ccx.lineTo(257,114);ccx.stroke(); // 壓低的眉
   // 瀏海蓋回側臉上緣
-  ccx.strokeStyle="#c93636";ccx.lineWidth=9;
+  ccx.strokeStyle=cp.bangs;ccx.lineWidth=9;
   ccx.beginPath();ccx.moveTo(212,72);ccx.quadraticCurveTo(246,78,251,98);ccx.stroke();
   // 飄浮火星
   for(let i=0;i<7;i++){
     const px=40+((i*53+t*0.9)%280),py=440-((t*0.7+i*61)%400);
     const a=0.3+0.7*Math.abs(Math.sin(t*0.05+i));
     ccx.fillStyle=i%2?`rgba(255,209,102,${a})`:`rgba(255,140,66,${a})`;
+    ccx.fillRect(px,py,3,3);
+  }
+}
+// 善逸首頁立繪：正面立姿——亂翹金髮、橘羽織三角紋、深色隊服、黃刃雷刀指天
+function drawCoverZen(t){
+  const cp=CHARS.zenitsu.cover;
+  ccx.clearRect(0,0,360,460);
+  const sw=Math.sin(t*0.03);
+  const cxm=170; // 人物中軸
+  // 金色光暈
+  let g=ccx.createRadialGradient(cxm,210,20,cxm,210,240);
+  g.addColorStop(0,`rgba(${cp.glow},0.18)`);g.addColorStop(1,"rgba(0,0,0,0)");
+  ccx.fillStyle=g;ccx.fillRect(0,0,360,460);
+  // 鋸齒閃電劈落
+  ccx.save();
+  ccx.shadowColor=cp.accent;ccx.shadowBlur=22;
+  for(let k=0;k<3;k++){
+    const x0=46+k*128,seed=k*3.7,ph=Math.floor(t*0.02);
+    ccx.strokeStyle=k===1?"rgba(255,255,255,0.6)":`rgba(${cp.glow},0.4)`;
+    ccx.lineWidth=k===1?3:5;
+    ccx.beginPath();ccx.moveTo(x0,6);
+    let px=x0,py=6;
+    for(let i=1;i<=6;i++){px+=Math.sin(seed+i*2.1+ph)*36;py+=64;ccx.lineTo(px,py);}
+    ccx.stroke();
+  }
+  ccx.restore();
+  // 草鞋足袋
+  ccx.fillStyle="#1c1826";
+  ccx.fillRect(cxm-44,432,34,12);ccx.fillRect(cxm+10,432,34,12);
+  // 燈籠褲（寬鬆束口）
+  ccx.fillStyle="#e8e3d8";
+  ccx.beginPath();
+  ccx.moveTo(cxm-34,300);
+  ccx.quadraticCurveTo(cxm-58,368,cxm-46,428);
+  ccx.lineTo(cxm-14,428);ccx.quadraticCurveTo(cxm-10,370,cxm-8,320);
+  ccx.lineTo(cxm+8,320);ccx.quadraticCurveTo(cxm+10,370,cxm+14,428);
+  ccx.lineTo(cxm+46,428);ccx.quadraticCurveTo(cxm+58,368,cxm+34,300);
+  ccx.closePath();ccx.fill();
+  ccx.fillStyle="#c9c2b0";
+  ccx.fillRect(cxm-10,312,4,96);ccx.fillRect(cxm+14,320,4,88);
+  // 深色隊服軀幹
+  ccx.fillStyle="#2b2620";
+  ccx.beginPath();
+  ccx.moveTo(cxm-30,168);ccx.lineTo(cxm+30,168);
+  ccx.quadraticCurveTo(cxm+36,240,cxm+32,304);
+  ccx.lineTo(cxm-32,304);ccx.quadraticCurveTo(cxm-36,240,cxm-30,168);
+  ccx.closePath();ccx.fill();
+  // 白腰帶與鈕扣
+  ccx.fillStyle="#e8e3d8";ccx.fillRect(cxm-33,282,66,14);
+  ccx.fillStyle="#ffd166";
+  ccx.fillRect(cxm-2,182,4,4);ccx.fillRect(cxm-2,208,4,4);ccx.fillRect(cxm-2,234,4,4);
+  // 橘羽織：兩片自肩披落（含垂袖），隨風微擺
+  g=ccx.createLinearGradient(0,160,0,380);
+  g.addColorStop(0,"#e8a02c");g.addColorStop(1,"#c97f1d");
+  ccx.fillStyle=g;
+  ccx.beginPath();
+  ccx.moveTo(cxm-30,164);
+  ccx.quadraticCurveTo(cxm-78,200+sw*4,cxm-84,300);
+  ccx.quadraticCurveTo(cxm-86,344,cxm-70,368);
+  ccx.lineTo(cxm-40,340);ccx.quadraticCurveTo(cxm-44,240,cxm-26,180);
+  ccx.closePath();ccx.fill();
+  ccx.beginPath();
+  ccx.moveTo(cxm+30,164);
+  ccx.quadraticCurveTo(cxm+78,200-sw*4,cxm+84,300);
+  ccx.quadraticCurveTo(cxm+86,344,cxm+70,368);
+  ccx.lineTo(cxm+40,340);ccx.quadraticCurveTo(cxm+44,240,cxm+26,180);
+  ccx.closePath();ccx.fill();
+  // 羽織白三角紋
+  ccx.fillStyle="rgba(245,239,224,0.92)";
+  for(const[tx,ty,ts]of[[cxm-72,300,7],[cxm-62,250,6],[cxm-70,346,7],[cxm-52,212,5],
+    [cxm+50,250,6],[cxm+58,300,7],[cxm+56,346,7],[cxm+42,212,5]]){
+    ccx.beginPath();ccx.moveTo(tx,ty);ccx.lineTo(tx+ts,ty-ts*2);ccx.lineTo(tx+ts*2,ty);
+    ccx.closePath();ccx.fill();
+  }
+  // 左手垂下
+  ccx.strokeStyle="#2b2620";ccx.lineWidth=12;ccx.lineCap="round";
+  ccx.beginPath();ccx.moveTo(cxm-28,196);ccx.quadraticCurveTo(cxm-40,240,cxm-38,268);ccx.stroke();
+  ccx.fillStyle="#e8bfa4";ccx.beginPath();ccx.arc(cxm-38,274,8,0,7);ccx.fill();
+  // 右手持刀，刀指右上
+  ccx.strokeStyle="#2b2620";ccx.lineWidth=13;
+  ccx.beginPath();ccx.moveTo(cxm+28,196);ccx.quadraticCurveTo(cxm+58,214,cxm+76,198);ccx.stroke();
+  ccx.fillStyle="#e8bfa4";ccx.beginPath();ccx.arc(cxm+82,192,9,0,7);ccx.fill();
+  // 刀：褐柄金鍔、黃刃白鋒＋流光＋刀尖電光
+  ccx.save();ccx.translate(cxm+82,192);ccx.rotate(-0.55);
+  ccx.fillStyle="#6b4a2b";ccx.fillRect(-6,10,12,26);
+  ccx.fillStyle="#ffd166";ccx.fillRect(-10,3,20,8);
+  const bg=ccx.createLinearGradient(0,0,0,-150);
+  bg.addColorStop(0,"#ffd95e");bg.addColorStop(1,"#fff3c4");
+  ccx.fillStyle=bg;ccx.fillRect(-4,-148,8,150);
+  ccx.fillStyle="rgba(255,255,255,0.9)";ccx.fillRect(-4,-148,3,150);
+  const gp=(t*0.8)%170;
+  if(gp<150){ccx.fillStyle="#fff";ccx.fillRect(-5,-gp,10,6);}
+  ccx.strokeStyle="rgba(255,241,118,0.9)";ccx.lineWidth=2.5;
+  ccx.beginPath();ccx.moveTo(0,-150);ccx.lineTo(8,-162);ccx.lineTo(2,-164);ccx.lineTo(12,-178);ccx.stroke();
+  ccx.restore();
+  // 亂翹金髮：放射髮束（先畫髮，再蓋臉）
+  const hairCols=["#c8860a","#e8b420","#f2c230","#ffd95e","#ffe680"];
+  for(let i=0;i<13;i++){
+    const a=(160-i*12)*Math.PI/180;
+    const L=52+((i*7)%3)*10+sw*3;
+    const bx2=cxm+Math.cos(a)*24,by2=118-Math.sin(a)*24;
+    const txp=cxm+Math.cos(a)*L,typ=118-Math.sin(a)*L;
+    const pa=a+Math.PI/2;
+    ccx.fillStyle=hairCols[i%hairCols.length];
+    ccx.beginPath();
+    ccx.moveTo(bx2+Math.cos(pa)*10,by2-Math.sin(pa)*10);
+    ccx.lineTo(txp,typ);
+    ccx.lineTo(bx2-Math.cos(pa)*10,by2+Math.sin(pa)*10);
+    ccx.closePath();ccx.fill();
+  }
+  // 臉
+  ccx.fillStyle="#f6dcc0";
+  ccx.beginPath();ccx.arc(cxm,118,34,0,7);ccx.fill();
+  // 鋸齒瀏海
+  ccx.fillStyle="#f2c230";
+  ccx.beginPath();ccx.moveTo(cxm-33,106);
+  ccx.quadraticCurveTo(cxm-30,82,cxm,80);
+  ccx.quadraticCurveTo(cxm+30,82,cxm+33,106);
+  ccx.lineTo(cxm+24,100);ccx.lineTo(cxm+16,112);ccx.lineTo(cxm+8,100);
+  ccx.lineTo(cxm,112);ccx.lineTo(cxm-8,100);ccx.lineTo(cxm-16,112);ccx.lineTo(cxm-24,100);
+  ccx.closePath();ccx.fill();
+  // 苦惱八字眉
+  ccx.strokeStyle="#c8860a";ccx.lineWidth=3;ccx.lineCap="round";
+  ccx.beginPath();ccx.moveTo(cxm-18,115);ccx.lineTo(cxm-8,119);ccx.stroke();
+  ccx.beginPath();ccx.moveTo(cxm+18,115);ccx.lineTo(cxm+8,119);ccx.stroke();
+  // 琥珀色大眼
+  ccx.fillStyle="#fff";
+  ccx.beginPath();ccx.ellipse(cxm-12,128,6.5,7.5,0,0,7);ccx.fill();
+  ccx.beginPath();ccx.ellipse(cxm+12,128,6.5,7.5,0,0,7);ccx.fill();
+  ccx.fillStyle="#e8a020";
+  ccx.beginPath();ccx.arc(cxm-12,129,4.4,0,7);ccx.fill();
+  ccx.beginPath();ccx.arc(cxm+12,129,4.4,0,7);ccx.fill();
+  ccx.fillStyle="#7a4c08";
+  ccx.beginPath();ccx.arc(cxm-12,129,1.8,0,7);ccx.fill();
+  ccx.beginPath();ccx.arc(cxm+12,129,1.8,0,7);ccx.fill();
+  ccx.fillStyle="#fff";ccx.fillRect(cxm-14,125,2,2);ccx.fillRect(cxm+10,125,2,2);
+  // 微張小嘴
+  ccx.strokeStyle="#8a5c3a";ccx.lineWidth=2;
+  ccx.beginPath();ccx.arc(cxm,142,5,0.3,2.84);ccx.stroke();
+  // 飄浮金色火星
+  for(let i=0;i<7;i++){
+    const px=40+((i*53+t*0.9)%280),py=440-((t*0.7+i*61)%400);
+    const a2=0.3+0.7*Math.abs(Math.sin(t*0.05+i));
+    ccx.fillStyle=i%2?`rgba(255,217,94,${a2})`:`rgba(255,241,118,${a2})`;
     ccx.fillRect(px,py,3,3);
   }
 }
@@ -1801,7 +2258,7 @@ function startGame(){
   G.running=true;G.flash=0;
   G.floor=G.runFloor>=2?G.runFloor:1; // 有進行中的紀錄就從該樓層續戰
   // 死亡不掉等級也不掉裝備：保留 lvl/exp/攻擊/血量上限/劍甲強化，只重置位置與狀態
-  Object.assign(player,{hp:player.maxhp,x:W/2,y:H-90,inv:30,ultCds:[0,0,0],ultQueue:0,combo:0});
+  Object.assign(player,{hp:player.maxhp,x:W/2,y:H-90,inv:30,ultCds:[0,0,0,0,0],ultQueue:0,combo:0});
   $("floorTag").textContent=diffPrefix()+(G.floor%5===0?"⚔ ":"")+`地下 ${G.floor} 層`;
   $("lvTag").textContent=player.lvl;
   $("equipTag").textContent=`劍 +${player.swordTier}・甲 +${player.armorTier}`;
