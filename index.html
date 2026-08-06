@@ -48,6 +48,7 @@
   #btnU5{right:82px;bottom:calc(env(safe-area-inset-bottom,0px) + 188px);}
   #btnU4,#btnU5{display:none;} /* 五式角色才顯示 */
   body.ch5 #btnU4,body.ch5 #btnU5{display:flex;}
+  body.ch1 #btnU2,body.ch1 #btnU3{display:none;} /* 單式角色（卡比）只留一顆奧義鍵 */
   .ubtn.cd{border-color:rgba(232,227,216,.35)!important;color:rgba(232,227,216,.75);}
   .ubtn.cd .ulbl{font-size:16px;font-weight:bold;}
   .ubtn.lock{border-color:rgba(255,209,102,.4)!important;color:var(--gold);}
@@ -211,11 +212,14 @@
       Lv18 陸之型「電轟雷轟」普攻進化：雷光連鎖＋第三段雷爆<br><br>
       </div>
       <div id="helpKirby">
-      奧義各自獨立按鈕與冷卻（鍵盤 Q／E／R）：<br><br>
-      <span style="color:#ff8ab9">卡比・星之勇者</span>（專屬招式設計中，暫借光刀三式機制）<br>
-      Lv5「流星衝刺」Q・直線衝刺斬（8 秒）<br>
-      Lv10「星光亂舞」E・多目標連斬，單體連續穿斬（12 秒）<br>
-      Lv15「銀河回旋」R・折返雙輪＋終結十字斬＋斬滅彈幕，擊殺冷卻 -1 秒（18 秒）<br><br>
+      奧義只有一招（鍵盤 Q）：<br><br>
+      <span style="color:#ff8ab9">卡比・星之勇者</span><br>
+      「吸入」Q・張大嘴把怪物與彈幕吸進肚子，一口最多吞 3 隻（頭目吸不動）（7 秒）<br>
+      吞下怪物會<span style="color:#ff8ab9">複製牠的能力</span>，普攻隨之改變：<br>
+      史萊姆「黏液」減速黏液彈／骷髏「骨刃」斬擊變大變痛<br>
+      蝙蝠「音波」穿透衝擊波／幽魂「幽星」追蹤星彈<br>
+      吐彈者「星彈」扇形星星彈／蠻鬼「重擊」重斬大擊退<br>
+      頭目吞不下去，但帶著合適的能力去打，難度大不相同<br><br>
       </div>
       擊殺獲得經驗，精英與頭目掉落裝備<br>
       劍：攻擊與範圍提升／甲：減傷與血量提升（<span style="color:var(--gold)">裝備兩人共享</span>，等級各自成長）<br>
@@ -355,10 +359,10 @@ const CHARS={
   kirby:{
     name:"卡比",
     eyebrow:"星之勇者・地城試煉",
-    sub:"來自星星的圓滾滾勇者誤闖地城<br>不帶劍也沒關係，一路彈跳滾到最深層",
-    nU:3,reqs:[5,10,15],cds:[480,720,1080], // 專屬招式設計中：暫借光刀三式機制
-    labels:["流星衝刺","星光亂舞","銀河回旋"],
-    fullNames:["奧義・流星衝刺","奧義・星光亂舞","奧義・銀河大回旋"],
+    sub:"來自星星的圓滾滾勇者誤闖地城<br>把怪物吸進肚子，複製牠們的力量吧",
+    nU:1,reqs:[1],cds:[420], // 只有一招：吸入（7 秒）
+    labels:["吸入"],
+    fullNames:["奧義・吸入"],
     short:1, // 遊戲內小人暫用短髮版型（專屬圓形造型待做）
     decoC:"#ff8ab9",decoG:"rgba(255,138,185,.8)", // 首頁光痕：粉紅星光
     accent:"#ff8ab9",eye:"#20315e",eyeHi:"#6fa8ff",
@@ -371,6 +375,16 @@ const CHARS={
 };
 let curChar="eris";
 const CH=()=>CHARS[curChar];
+// 卡比的複製能力：吞下怪物後普攻隨之改變（kind: shot=吐彈幕／melee=強化斬擊）
+const KIRBY_COPY={
+  slime:{name:"黏液",color:"#4caf7d",kind:"shot"},   // 減速黏液彈
+  skel:{name:"骨刃",color:"#e8e3d8",kind:"melee"},   // 斬擊變大變痛
+  bat:{name:"音波",color:"#b58fe0",kind:"shot"},     // 穿透衝擊波
+  brute:{name:"重擊",color:"#e0685f",kind:"melee"},  // 重斬大擊退
+  wraith:{name:"幽星",color:"#b39ae8",kind:"shot"},  // 追蹤星彈
+  spitter:{name:"星彈",color:"#ffd166",kind:"shot"}  // 扇形星星彈
+};
+let pshots=[]; // 卡比吐出的普攻彈
 // ============ 狀態 ============
 const G={running:false,floor:1,hitstop:0,shake:0,shakeX:0,shakeY:0,time:0,clearTimer:0,flash:0,
   diff:0,unlockedDiff:0,bestFloor:0};
@@ -379,7 +393,8 @@ const player={
   lvl:1,exp:0,expNext:30,atkMul:1,swordTier:0,armorTier:0,
   atkQueue:false,combo:0,comboWindow:0,atkTimer:0,atkCd:0,atkAng:0,
   dashQueue:false,dashDir:null,dashTimer:0,dashCd:0,inv:0,
-  ultQueue:0,ultCds:[0,0,0,0,0],hurtFlash:0,trail:[],walk:0
+  ultQueue:0,ultCds:[0,0,0,0,0],hurtFlash:0,trail:[],walk:0,
+  copy:null,inhale:0,inhaleAte:0 // 卡比：複製能力與吸入狀態
 };
 let enemies=[],particles=[],dmgNums=[],slashes=[],orbs=[],drops=[],bullets=[],hazards=[],stairs=null,boss=null;
 addEventListener("resize",resize);resize();
@@ -545,6 +560,7 @@ function updatePlayer(){
   }else p.atkQueue=false;
 
   if(p.ultQueue){const t=p.ultQueue;p.ultQueue=0;doUlt(t);}
+  if(p.inhale>0)updateInhale(); // 卡比吸入進行中
   if(p.hurtFlash>0)p.hurtFlash--;
 
   // 撿裝備（靠近會自動吸過來，避免漏撿）
@@ -610,15 +626,17 @@ function nearestEnemy(maxD){
 }
 function doSlash(third){
   const p=player;
-  const rBonus=1+p.swordTier*0.08; // 劍每強化一級，範圍 +8%
+  const cm=curChar==="kirby"&&p.copy?p.copy:null; // 卡比的複製能力
+  if(cm&&KIRBY_COPY[cm].kind==="shot")return doCopyShot(third); // 遠程複製：改吐彈幕
+  const rBonus=(1+p.swordTier*0.08)*(cm==="skel"?1.35:cm==="brute"?1.15:1); // 劍每強化一級，範圍 +8%；骨刃/重擊加大
   const range=(third?86:64)*rBonus,arc=third?2.6:2.0;
   const target=nearestEnemy(260);
   const ang=target?Math.atan2(target.y-p.y,target.x-p.x):(p.face>0?0:Math.PI);
   if(Math.abs(Math.cos(ang))>0.2)p.face=Math.cos(ang)>0?1:-1;
   p.atkAng=ang;
   const evo=CH().atkEvo&&p.lvl>=CH().atkEvo; // 陸之型・電轟雷轟：普攻雷光化
-  const baseDmg=(third?ATK_HEAVY:ATK_LIGHT)*atkPower()*(evo?1.4:1);
-  slashArc(p.x+Math.cos(ang)*18,p.y+Math.sin(ang)*18,ang,range,evo?"#ffe14d":third?"#ffd166":"#ff8c42");
+  const baseDmg=(third?ATK_HEAVY:ATK_LIGHT)*atkPower()*(evo?1.4:1)*(cm==="skel"?1.25:cm==="brute"?1.5:1);
+  slashArc(p.x+Math.cos(ang)*18,p.y+Math.sin(ang)*18,ang,range,evo?"#ffe14d":cm?KIRBY_COPY[cm].color:third?"#ffd166":"#ff8c42");
   if(third)shake(7);
   let hitAny=false;
   const chained=new Set(); // 連鎖閃電同一揮不重複跳
@@ -633,7 +651,7 @@ function doSlash(third){
         const crit=Math.random()<0.15;
         const dmg=baseDmg*(crit?1.8:1)*rnd(0.9,1.1);
         e.hp-=dmg;e.flash=6;
-        const kb=(third?9:4.5)*((e.type==="boss"||e.type==="prism")?0.25:1);
+        const kb=(third?9:4.5)*(curChar==="kirby"&&p.copy==="brute"?2:1)*((e.type==="boss"||e.type==="prism")?0.25:1);
         e.kbx+=Math.cos(ea)*kb;e.kby+=Math.sin(ea)*kb;
         burst(e.x,e.y,evo?"#ffe14d":crit?"#ffd166":"#ff8c42",crit?14:8,crit?6:4);
         dmgNum(e.x,e.y,dmg,crit);
@@ -671,8 +689,9 @@ function doSlash(third){
 }
 // 奧義：光之太刀（時停 → 蓄力 → 瞬身連斬 → 收劍後一齊結算）
 let ultTrails=[];
-function doUlt(tier){ // 艾莉絲：1 無音之太刀 / 2 光之太刀 / 3 光返し；善逸走 doThunder
+function doUlt(tier){ // 艾莉絲：1 無音之太刀 / 2 光之太刀 / 3 光返し；善逸走 doThunder；卡比走 doInhale
   if(curChar==="zenitsu")return doThunder(tier);
+  if(curChar==="kirby")return doInhale();
   const p=player;
   p.ultCds[tier-1]=CH().cds[tier-1];
   const R=260*(1+p.swordTier*0.08);
@@ -732,6 +751,147 @@ function doUlt(tier){ // 艾莉絲：1 無音之太刀 / 2 光之太刀 / 3 光�
   G.ultSeq={phase:"charge",t:tier===1?14:24,path,idx:0,segT:0,targets,dim:0,tier};
   p.inv=999; // 全程無敵，結束時歸還
   buzz(20);
+}
+// ============ 卡比：吸入與複製能力 ============
+function doInhale(){ // 奧義・吸入：張大嘴開始吸（吸入過程在 updateInhale 逐幀進行）
+  const p=player;
+  p.ultCds[0]=CH().cds[0];
+  p.inhale=54;p.inhaleAte=0;
+  buzz(20);
+}
+function updateInhale(){
+  const p=player;
+  p.inhale--;
+  const R=210;
+  for(let i=0;i<3;i++){ // 吸入氣流：粒子由外圈捲向嘴邊
+    const a=rnd(0,6.28),d=rnd(60,R);
+    particles.push({x:p.x+Math.cos(a)*d,y:p.y+Math.sin(a)*d,
+      vx:-Math.cos(a)*d/15,vy:-Math.sin(a)*d/15,life:13,max:13,color:i%2?"#ffd6e6":"#fff",size:2.5});
+  }
+  for(const e of enemies){
+    if(e.dead)continue;
+    if(BOSS_TYPES.includes(e.type)||e.type==="fang")continue; // 頭目吸不動
+    const dx=p.x-e.x,dy=p.y-e.y,d=Math.hypot(dx,dy)||1;
+    if(d>R)continue;
+    const pull=2.5+(1-d/R)*6;
+    e.x+=dx/d*pull;e.y+=dy/d*pull;
+    if(d<30&&p.inhaleAte<3){ // 吞掉！一口最多 3 隻
+      p.inhaleAte++;
+      killEnemy(e);
+      burst(p.x,p.y,"#ff8ab9",10,5);buzz(30);
+      const cp=KIRBY_COPY[e.type];
+      if(cp&&p.copy!==e.type){ // 複製最後吞下的怪物能力
+        p.copy=e.type;
+        dmgNum(p.x,p.y-26,0,true,"複製・"+cp.name);
+        $("charTag").textContent="卡比・"+cp.name;
+      }
+    }
+  }
+  for(const b of bullets){ // 連彈幕也能吸進肚子（打頭目的保命手段）
+    const dx=p.x-b.x,dy=p.y-b.y,d=Math.hypot(dx,dy)||1;
+    if(d>R)continue;
+    b.x+=dx/d*7;b.y+=dy/d*7;
+    if(d<26){b.life=0;burst(b.x,b.y,"#ffd6e6",3,2);}
+  }
+}
+function doCopyShot(third){ // 複製能力的遠程普攻：從嘴裡吐出彈幕
+  const p=player,cp=KIRBY_COPY[p.copy];
+  const target=nearestEnemy(340);
+  const ang=target?Math.atan2(target.y-p.y,target.x-p.x):(p.face>0?0:Math.PI);
+  if(Math.abs(Math.cos(ang))>0.2)p.face=Math.cos(ang)>0?1:-1;
+  p.atkAng=ang;
+  const dmg=(third?ATK_HEAVY:ATK_LIGHT)*atkPower();
+  const mx=p.x+Math.cos(ang)*14,my=p.y+Math.sin(ang)*14;
+  if(p.copy==="spitter"){ // 星彈：扇形星星（第三段五連星）
+    const n=third?5:3;
+    for(let i=0;i<n;i++){
+      const a=ang+(i-(n-1)/2)*0.22;
+      pshots.push({x:mx,y:my,vx:Math.cos(a)*6.5,vy:Math.sin(a)*6.5,r:7,dmg:dmg*0.75,life:70,kind:"star",col:cp.color});
+    }
+  }else if(p.copy==="bat"){ // 音波：穿透衝擊波（同一發不重複命中）
+    pshots.push({x:mx,y:my,vx:Math.cos(ang)*8,vy:Math.sin(ang)*8,r:third?26:16,dmg:dmg*0.9,life:52,kind:"wave",pierce:1,hitSet:[],col:cp.color});
+  }else if(p.copy==="slime"){ // 黏液：命中讓敵人變慢（對頭目也有效）
+    pshots.push({x:mx,y:my,vx:Math.cos(ang)*5.2,vy:Math.sin(ang)*5.2,r:third?12:9,dmg:dmg*1.05,life:80,kind:"goo",slow:third?150:90,col:cp.color});
+  }else if(p.copy==="wraith"){ // 幽星：追蹤最近的敵人（第三段雙發）
+    const n=third?2:1;
+    for(let i=0;i<n;i++){
+      const a=ang+(n>1?(i?0.5:-0.5):0);
+      pshots.push({x:mx,y:my,vx:Math.cos(a)*4.6,vy:Math.sin(a)*4.6,r:8,dmg:dmg*1.2,life:110,kind:"soul",homing:0.22,col:cp.color});
+    }
+  }
+  burst(mx,my,cp.color,4,3);buzz(third?25:10);
+  if(third)shake(3);
+}
+function nearestEnemyTo(o,maxD){
+  let t=null,best=maxD*maxD;
+  for(const e of enemies){if(e.dead)continue;const d2=dist2(o,e);if(d2<best){best=d2;t=e;}}
+  return t;
+}
+function updatePshots(){
+  for(const b of pshots){
+    b.life--;
+    if(b.homing){ // 幽星轉向追蹤
+      const t=nearestEnemyTo(b,300);
+      if(t){
+        const a=Math.atan2(t.y-b.y,t.x-b.x),cur=Math.atan2(b.vy,b.vx);
+        const dAng=((a-cur+Math.PI*3)%(Math.PI*2))-Math.PI;
+        const na=cur+clamp(dAng,-b.homing,b.homing),s=Math.hypot(b.vx,b.vy);
+        b.vx=Math.cos(na)*s;b.vy=Math.sin(na)*s;
+      }
+    }
+    b.x+=b.vx;b.y+=b.vy;
+    if(b.x<8||b.x>W-8||b.y<TOP-12||b.y>H)b.life=0;
+    if(b.life<=0)continue;
+    for(const e of enemies){
+      if(e.dead)continue;
+      if(b.pierce&&b.hitSet.includes(e))continue;
+      if(Math.hypot(e.x-b.x,e.y-b.y)>=e.r+b.r)continue;
+      const crit=Math.random()<0.15;
+      const dmg=b.dmg*(crit?1.8:1)*rnd(0.9,1.1);
+      e.hp-=dmg;e.flash=6;
+      const ea=Math.atan2(e.y-player.y,e.x-player.x);
+      const kb=3*((BOSS_TYPES.includes(e.type)||e.type==="fang")?0.25:1);
+      e.kbx+=Math.cos(ea)*kb;e.kby+=Math.sin(ea)*kb;
+      if(b.slow)e.slowT=Math.max(e.slowT||0,b.slow);
+      dmgNum(e.x,e.y,dmg,crit);
+      burst(e.x,e.y,b.col,crit?12:6,crit?6:4);
+      comboCount++;comboFade=90;
+      if(e.hp<=0)killEnemy(e);
+      if(b.pierce)b.hitSet.push(e);
+      else{b.life=0;break;}
+    }
+  }
+  pshots=pshots.filter(b=>b.life>0);
+}
+function drawPshots(){
+  for(const b of pshots){
+    cx.save();cx.translate(b.x,b.y);
+    cx.shadowColor=b.col;cx.shadowBlur=9;
+    if(b.kind==="star"||b.kind==="soul"){ // 星星形彈
+      cx.rotate(G.time*0.2);
+      cx.fillStyle=b.col;
+      cx.beginPath();
+      for(let i=0;i<5;i++){
+        const o=-Math.PI/2+i*1.2566;
+        cx.lineTo(Math.cos(o)*b.r*1.4,Math.sin(o)*b.r*1.4);
+        cx.lineTo(Math.cos(o+0.6283)*b.r*0.6,Math.sin(o+0.6283)*b.r*0.6);
+      }
+      cx.closePath();cx.fill();
+    }else if(b.kind==="wave"){ // 音波：雙層弧
+      cx.rotate(Math.atan2(b.vy,b.vx));
+      cx.strokeStyle=b.col;cx.lineWidth=4;
+      cx.beginPath();cx.arc(-b.r*0.4,0,b.r,-1.1,1.1);cx.stroke();
+      cx.lineWidth=2.5;
+      cx.beginPath();cx.arc(-b.r*0.4,0,b.r*0.62,-1.1,1.1);cx.stroke();
+    }else{ // 黏液球
+      cx.fillStyle=b.col;
+      cx.beginPath();cx.ellipse(0,0,b.r,b.r*0.8,0,0,7);cx.fill();
+      cx.fillStyle="rgba(255,255,255,0.5)";
+      cx.beginPath();cx.arc(-b.r*0.3,-b.r*0.3,b.r*0.3,0,7);cx.fill();
+    }
+    cx.restore();
+  }
+  cx.shadowBlur=0;
 }
 // 善逸的雷之呼吸：壹・伍走時停瞬身演出，貳參肆為即發技
 function doThunder(t){
@@ -944,6 +1104,13 @@ function updateEnemies(){
     if(e.dead)continue;
     e.wobble+=0.12;
     if(e.flash>0)e.flash--;
+    if(e.slowT>0){ // 黏液減速：行動速度砍半以上，身上滴綠色黏液
+      e.slowT--;
+      if(e.baseSpd===undefined)e.baseSpd=e.speed;
+      e.speed=e.baseSpd*0.45;
+      if(G.time%8===0)particles.push({x:e.x+rnd(-e.r,e.r),y:e.y+e.r*0.6,
+        vx:0,vy:0.3,life:14,max:14,color:"#4caf7d",size:2.5});
+    }else if(e.baseSpd!==undefined){e.speed=e.baseSpd;e.baseSpd=undefined;}
     e.x+=e.kbx;e.y+=e.kby;e.kbx*=0.82;e.kby*=0.82;
     if(e.stun>0){ // 麻痺：停止行動與攻擊，仍可被打
       e.stun--;
@@ -1443,8 +1610,17 @@ function drawPlayer(){
     cx.fillStyle="rgba(255,95,158,0.85)";
     cx.beginPath();cx.ellipse(bx+f*8.5,by-1-bob,2.4,1.3,0,0,7);cx.fill();
     cx.beginPath();cx.ellipse(bx-f*3.5,by-1-bob,2.4,1.3,0,0,7);cx.fill();
-    cx.fillStyle="#8c2f45";
-    cx.beginPath();cx.ellipse(bx+f*3,by+1.5-bob,2,1.6,0,0,Math.PI);cx.fill();
+    if(p.inhale>0){ // 吸入中：嘴張到最大
+      cx.fillStyle="#6e1f35";
+      cx.beginPath();cx.ellipse(bx+f*4,by-1-bob,6.5,5.5,0,0,7);cx.fill();
+      cx.fillStyle="#3d0f1d";
+      cx.beginPath();cx.ellipse(bx+f*4,by-1-bob,3.8,3.2,0,0,7);cx.fill();
+    }else{
+      cx.fillStyle="#8c2f45";
+      cx.beginPath();cx.ellipse(bx+f*3,by+1.5-bob,3.4,2.8,0,0,Math.PI);cx.fill();
+      cx.fillStyle="#ff7d9c";
+      cx.beginPath();cx.ellipse(bx+f*3,by+2.5-bob,1.8,1.2,0,0,Math.PI);cx.fill();
+    }
     cx.globalAlpha=1;cx.restore();
     return;
   }
@@ -1798,6 +1974,7 @@ function loop(){
   if(G.hitstop>0){G.hitstop--;render();return;}
   updatePlayer();
   updateEnemies();
+  updatePshots();
   updateFx();
   if(G.shake>0){
     G.shake*=0.85;
@@ -1827,6 +2004,7 @@ function render(){
     else drawPlayer();
   }
   drawBullets();
+  drawPshots();
   drawFx();
   drawBossBar();
   drawUltOverlay();
@@ -1882,6 +2060,7 @@ function applyChar(c){ // 套用角色的獨立進度；血量上限＝等級成
   player.maxhp=100+(player.lvl-1)*8+player.armorTier*12;player.hp=player.maxhp;
   G.bestFloor=d.bestFloor||0;G.runFloor=d.runFloor||0;
   document.body.classList.toggle("ch5",CHARS[c].nU>3);
+  document.body.classList.toggle("ch1",CHARS[c].nU<2);
   $("coverCv").classList.toggle("left",!!CHARS[c].coverLeft); // 善逸立繪靠左
   $("coverCv").classList.toggle("pink",c==="kirby"); // 卡比粉紅光暈
   $("helpEris").classList.toggle("hidden",c!=="eris"); // 操作說明只顯示當前角色的招式表
@@ -1962,7 +2141,7 @@ function drawHero(t){
     R(33,yb-8,4,10,"#1c2340");R(43,yb-8,4,10,"#1c2340"); // 大眼
     R(34,yb-7,2,3,"#fff");R(44,yb-7,2,3,"#fff");
     R(24,yb+5,5,3,"#ff5f9e");R(51,yb+5,5,3,"#ff5f9e"); // 腮紅
-    R(37,yb+6,6,3,"#8c2f45"); // 小嘴
+    R(35,yb+5,10,6,"#8c2f45");R(38,yb+8,5,3,"#ff7d9c"); // 張大嘴＋舌頭
     for(let i=0;i<5;i++){ // 飄浮小星光
       const px=16+((i*31+t*0.6)%50),py=90-((t*0.45+i*29)%70);
       if((i+Math.floor(t*0.1))%3===0)R(px,py,2,2,i%2?"#ffd166":"#ff8ab9");
@@ -2403,11 +2582,11 @@ function drawCoverKirby(t){
   ccx.beginPath();ccx.ellipse(114,by+16,16,8,0.15,0,7);ccx.fill();
   ccx.beginPath();ccx.ellipse(246,by+16,16,8,-0.15,0,7);ccx.fill();
   ccx.globalAlpha=1;
-  // 張嘴笑（含小舌頭）
+  // 張大嘴笑（含小舌頭）
   ccx.fillStyle="#8c2f45";
-  ccx.beginPath();ccx.ellipse(180,by+24,13,11,0,0,Math.PI);ccx.fill();
+  ccx.beginPath();ccx.ellipse(180,by+26,20,16,0,0,Math.PI);ccx.fill();
   ccx.fillStyle="#ff7d9c";
-  ccx.beginPath();ccx.ellipse(180,by+29,8,5,0,0,Math.PI);ccx.fill();
+  ccx.beginPath();ccx.ellipse(180,by+32,13,8,0,0,Math.PI);ccx.fill();
   // 右手開心舉高高（隨彈跳揮舞）
   ccx.fillStyle=cp.body;
   ccx.save();ccx.translate(252,by-52-bob*10);ccx.rotate(-0.85+bob*0.3);
@@ -2432,7 +2611,10 @@ function startGame(){
   G.running=true;G.flash=0;
   G.floor=G.runFloor>=2?G.runFloor:1; // 有進行中的紀錄就從該樓層續戰
   // 死亡不掉等級也不掉裝備：保留 lvl/exp/攻擊/血量上限/劍甲強化，只重置位置與狀態
-  Object.assign(player,{hp:player.maxhp,x:W/2,y:H-90,inv:30,ultCds:[0,0,0,0,0],ultQueue:0,combo:0});
+  Object.assign(player,{hp:player.maxhp,x:W/2,y:H-90,inv:30,ultCds:[0,0,0,0,0],ultQueue:0,combo:0,
+    copy:null,inhale:0,inhaleAte:0}); // 卡比：複製能力每輪重新收集
+  pshots=[];
+  $("charTag").textContent=CH().name;
   $("floorTag").textContent=diffPrefix()+(G.floor%5===0?"⚔ ":"")+`地下 ${G.floor} 層`;
   $("lvTag").textContent=player.lvl;
   $("equipTag").textContent=`劍 +${player.swordTier}・甲 +${player.armorTier}`;
