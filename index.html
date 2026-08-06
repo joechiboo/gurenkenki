@@ -394,7 +394,7 @@ const player={
   atkQueue:false,combo:0,comboWindow:0,atkTimer:0,atkCd:0,atkAng:0,
   dashQueue:false,dashDir:null,dashTimer:0,dashCd:0,inv:0,
   ultQueue:0,ultCds:[0,0,0,0,0],hurtFlash:0,trail:[],walk:0,
-  copy:null,inhale:0,inhaleAte:0 // 卡比：複製能力與吸入狀態
+  copy:null,inhale:0,inhaleAte:0,gulp:0 // 卡比：複製能力與吸入/吞嚥狀態
 };
 let enemies=[],particles=[],dmgNums=[],slashes=[],orbs=[],drops=[],bullets=[],hazards=[],stairs=null,boss=null;
 addEventListener("resize",resize);resize();
@@ -561,6 +561,7 @@ function updatePlayer(){
 
   if(p.ultQueue){const t=p.ultQueue;p.ultQueue=0;doUlt(t);}
   if(p.inhale>0)updateInhale(); // 卡比吸入進行中
+  if(p.gulp>0)p.gulp--;
   if(p.hurtFlash>0)p.hurtFlash--;
 
   // 撿裝備（靠近會自動吸過來，避免漏撿）
@@ -763,22 +764,30 @@ function updateInhale(){
   const p=player;
   p.inhale--;
   const R=210;
+  const mx=p.x+p.face*10,my=p.y-4; // 嘴巴位置：氣流與怪物都往這裡收
   for(let i=0;i<3;i++){ // 吸入氣流：粒子由外圈捲向嘴邊
     const a=rnd(0,6.28),d=rnd(60,R);
-    particles.push({x:p.x+Math.cos(a)*d,y:p.y+Math.sin(a)*d,
+    particles.push({x:mx+Math.cos(a)*d,y:my+Math.sin(a)*d,
       vx:-Math.cos(a)*d/15,vy:-Math.sin(a)*d/15,life:13,max:13,color:i%2?"#ffd6e6":"#fff",size:2.5});
   }
   for(const e of enemies){
     if(e.dead)continue;
     if(BOSS_TYPES.includes(e.type)||e.type==="fang")continue; // 頭目吸不動
-    const dx=p.x-e.x,dy=p.y-e.y,d=Math.hypot(dx,dy)||1;
+    const dx=mx-e.x,dy=my-e.y,d=Math.hypot(dx,dy)||1;
     if(d>R)continue;
     const pull=2.5+(1-d/R)*6;
     e.x+=dx/d*pull;e.y+=dy/d*pull;
-    if(d<30&&p.inhaleAte<3){ // 吞掉！一口最多 3 隻
+    e.suckS=clamp(d/170,0.3,1); // 越接近嘴巴縮得越小：被吸進去的感覺
+    if(d<26&&p.inhaleAte<3){ // 咕嚕！整隻吞進嘴裡（最多 3 隻）
       p.inhaleAte++;
-      killEnemy(e);
-      burst(p.x,p.y,"#ff8ab9",10,5);buzz(30);
+      e.dead=1;
+      p.gulp=14; // 吞嚥：閉嘴鼓臉
+      gainExp(e.exp); // 經驗直接進肚子，不噴珠
+      if(e.type==="brute"&&Math.random()<0.6)dropItem(e.x,e.y); // 精英照樣掉裝
+      p.hp=Math.min(p.maxhp,p.hp+1.5);
+      burst(mx,my,"#ff8ab9",8,4);burst(mx,my,"#ffd166",5,3);
+      dmgNum(p.x,p.y-24,0,true,"咕嚕！");
+      hitstop(4);buzz(30);
       const cp=KIRBY_COPY[e.type];
       if(cp&&p.copy!==e.type){ // 複製最後吞下的怪物能力
         p.copy=e.type;
@@ -788,10 +797,10 @@ function updateInhale(){
     }
   }
   for(const b of bullets){ // 連彈幕也能吸進肚子（打頭目的保命手段）
-    const dx=p.x-b.x,dy=p.y-b.y,d=Math.hypot(dx,dy)||1;
+    const dx=mx-b.x,dy=my-b.y,d=Math.hypot(dx,dy)||1;
     if(d>R)continue;
     b.x+=dx/d*7;b.y+=dy/d*7;
-    if(d<26){b.life=0;burst(b.x,b.y,"#ffd6e6",3,2);}
+    if(d<22){b.life=0;burst(b.x,b.y,"#ffd6e6",3,2);}
   }
 }
 function doCopyShot(third){ // 複製能力的遠程普攻：從嘴裡吐出彈幕
@@ -1111,6 +1120,7 @@ function updateEnemies(){
       if(G.time%8===0)particles.push({x:e.x+rnd(-e.r,e.r),y:e.y+e.r*0.6,
         vx:0,vy:0.3,life:14,max:14,color:"#4caf7d",size:2.5});
     }else if(e.baseSpd!==undefined){e.speed=e.baseSpd;e.baseSpd=undefined;}
+    if(e.suckS!==undefined&&e.suckS<1&&player.inhale<=0)e.suckS=Math.min(1,e.suckS+0.06); // 吸入結束慢慢回復原大小
     e.x+=e.kbx;e.y+=e.kby;e.kbx*=0.82;e.kby*=0.82;
     if(e.stun>0){ // 麻痺：停止行動與攻擊，仍可被打
       e.stun--;
@@ -1589,13 +1599,14 @@ function drawPlayer(){
     cx.fillStyle=hurt?"#ffffff":"#ee7fae";
     cx.beginPath();cx.ellipse(bx-11,by-4+step*0.5,4.5,3.5,0.5,0,7);cx.fill();
     cx.beginPath();cx.ellipse(bx+11,by-4-step*0.5,4.5,3.5,-0.5,0,7);cx.fill();
-    // 圓滾滾身體（左上受光）
-    const bg=cx.createRadialGradient(bx-4,by-8-bob,2,bx,by-3-bob,13);
+    // 圓滾滾身體（左上受光；吞嚥時鼓成一顆更大的球）
+    const puff=p.gulp>0?Math.sin(p.gulp/14*Math.PI)*3:0;
+    const bg=cx.createRadialGradient(bx-4,by-8-bob,2,bx,by-3-bob,13+puff);
     bg.addColorStop(0,hurt?"#ffffff":"#ffd6e6");
     bg.addColorStop(0.6,hurt?"#ffffff":"#ffa7c9");
     bg.addColorStop(1,hurt?"#ffdddd":"#ee7fae");
     cx.fillStyle=bg;
-    cx.beginPath();cx.arc(bx,by-3-bob,12,0,7);cx.fill();
+    cx.beginPath();cx.arc(bx,by-3-bob,12+puff,0,7);cx.fill();
     // 綠色勇者帽＋垂在腦後的帽尖金球
     cx.fillStyle=hurt?"#ffffff":"#2ea75f";
     cx.beginPath();cx.arc(bx,by-3-bob,12.5,-2.7,-0.44);cx.closePath();cx.fill();
@@ -1615,6 +1626,10 @@ function drawPlayer(){
       cx.beginPath();cx.ellipse(bx+f*4,by-1-bob,6.5,5.5,0,0,7);cx.fill();
       cx.fillStyle="#3d0f1d";
       cx.beginPath();cx.ellipse(bx+f*4,by-1-bob,3.8,3.2,0,0,7);cx.fill();
+    }else if(p.gulp>0){ // 吞嚥中：嘴閉起來、鼓著臉咕嚕
+      cx.strokeStyle="#8c2f45";cx.lineWidth=1.4;
+      cx.beginPath();cx.moveTo(bx+f*1,by+1.5-bob);
+      cx.quadraticCurveTo(bx+f*3,by+3.5-bob,bx+f*5.5,by+1.5-bob);cx.stroke();
     }else{
       cx.fillStyle="#8c2f45";
       cx.beginPath();cx.ellipse(bx+f*3,by+1.5-bob,3.4,2.8,0,0,Math.PI);cx.fill();
@@ -1684,6 +1699,9 @@ function drawPlayer(){
 function drawEnemy(e){
     const ds=depthS(e.y);
     cx.save();cx.translate(e.x,e.y);cx.scale(ds,ds);cx.translate(-e.x,-e.y);
+    if(e.suckS!==undefined&&e.suckS<1){ // 被卡比吸住：越靠近嘴巴縮得越小
+      cx.translate(e.x,e.y);cx.scale(e.suckS,e.suckS);cx.rotate((1-e.suckS)*(e.wobble%2-1)*0.8);cx.translate(-e.x,-e.y);
+    }
     cx.fillStyle="rgba(0,0,0,0.35)";
     cx.beginPath();cx.ellipse(e.x,e.y+e.r*0.85,e.r*0.8,e.r*0.28,0,0,7);cx.fill();
     const bob=Math.sin(e.wobble)*3;
@@ -2612,7 +2630,7 @@ function startGame(){
   G.floor=G.runFloor>=2?G.runFloor:1; // 有進行中的紀錄就從該樓層續戰
   // 死亡不掉等級也不掉裝備：保留 lvl/exp/攻擊/血量上限/劍甲強化，只重置位置與狀態
   Object.assign(player,{hp:player.maxhp,x:W/2,y:H-90,inv:30,ultCds:[0,0,0,0,0],ultQueue:0,combo:0,
-    copy:null,inhale:0,inhaleAte:0}); // 卡比：複製能力每輪重新收集
+    copy:null,inhale:0,inhaleAte:0,gulp:0}); // 卡比：複製能力每輪重新收集
   pshots=[];
   $("charTag").textContent=CH().name;
   $("floorTag").textContent=diffPrefix()+(G.floor%5===0?"⚔ ":"")+`地下 ${G.floor} 層`;
